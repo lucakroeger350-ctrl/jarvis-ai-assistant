@@ -11,6 +11,8 @@ const calendar = require('./core/calendar');
 const meeting = require('./core/meeting');
 const profiles = require('./core/profiles');
 const auth = require('./core/auth');
+const { autoUpdater } = require('electron-updater');
+const integrations = require('./core/integrations');
 
 let mainWindow;
 const recognizer = new NativeSpeechRecognizer();
@@ -118,6 +120,34 @@ recognizer.on('error', (err) => {
 });
 recognizer.on('crashed', () => send('speech:status', { status: 'restarting' }));
 
+// Auto-Update: prüft nur passiv gegen die veröffentlichten GitHub-Releases und
+// informiert den Nutzer. Heruntergeladen/installiert wird ausschließlich nach
+// expliziter Bestätigung durch den Nutzer - nie automatisch im Hintergrund.
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+autoUpdater.on('update-available', (info) => {
+  send('update:available', { version: info.version });
+});
+autoUpdater.on('update-not-available', () => {
+  send('update:status', { status: 'up-to-date' });
+});
+autoUpdater.on('error', (err) => {
+  send('update:status', { status: 'error', message: err.message });
+});
+autoUpdater.on('download-progress', (progress) => {
+  send('update:progress', { percent: Math.round(progress.percent) });
+});
+autoUpdater.on('update-downloaded', () => {
+  send('update:ready', {});
+});
+
+function checkForUpdates() {
+  autoUpdater.checkForUpdates().catch((err) => {
+    send('update:status', { status: 'error', message: err.message });
+  });
+}
+
 app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === 'media');
@@ -138,6 +168,10 @@ app.whenReady().then(() => {
   const settings = memory.getSettings();
   applyHotkey(settings.hotkey);
   startReminderTimer();
+
+  if (app.isPackaged) {
+    setTimeout(checkForUpdates, 5000); // stiller Check kurz nach dem Start
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -170,6 +204,18 @@ ipcMain.handle('auth:login', (_event, { email, password }) => auth.login(email, 
 ipcMain.handle('auth:logout', () => auth.logout());
 ipcMain.handle('auth:get-session', () => auth.getSession());
 ipcMain.handle('app:session-ready', () => { runStartupRoutine(); return true; });
+
+ipcMain.handle('update:check', () => {
+  if (!app.isPackaged) return { error: 'Update-Check funktioniert nur in der installierten Version, nicht im Entwicklungsmodus.' };
+  checkForUpdates();
+  return { checking: true };
+});
+ipcMain.handle('update:download', () => { autoUpdater.downloadUpdate(); return true; });
+ipcMain.handle('update:install', () => { autoUpdater.quitAndInstall(); return true; });
+ipcMain.handle('app:get-version', () => app.getVersion());
+
+ipcMain.handle('integrations:get', () => integrations.get());
+ipcMain.handle('integrations:save', (_event, config) => integrations.save(config));
 
 ipcMain.handle('profiles:list', () => profiles.listProfiles());
 ipcMain.handle('profiles:get-active', () => profiles.getActiveProfileId());

@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@google/generative-ai": "^0.24.1",
+    "electron-updater": "^6.8.9",
     "pdfkit": "^0.19.1"
   },
   "devDependencies": {
@@ -42,6 +43,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "lucakroeger350-ctrl",
+      "repo": "jarvis-ai-assistant"
     }
   }
 }

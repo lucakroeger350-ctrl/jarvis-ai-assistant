@@ -578,6 +578,24 @@ body.pre-auth .auth-overlay { display: flex; }
   line-height: 1.5;
   text-align: center;
 }
+.auth-hint a { color: var(--amber); }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4,4,6,0.75);
+  backdrop-filter: blur(10px);
+}
+.modal-overlay.open { display: flex; }
+.modal-overlay code {
+  background: rgba(255,138,42,0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
 
 /* ---------- Settings Overlay ---------- */
 .settings-overlay {

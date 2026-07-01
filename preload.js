@@ -38,4 +38,16 @@ contextBridge.exposeInMainWorld('jarvis', {
   logout: () => ipcRenderer.invoke('auth:logout'),
   getSession: () => ipcRenderer.invoke('auth:get-session'),
   sessionReady: () => ipcRenderer.invoke('app:session-ready'),
+
+  getAppVersion: () => ipcRenderer.invoke('app:get-version'),
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update:available', (_e, payload) => cb(payload)),
+  onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, payload) => cb(payload)),
+  onUpdateProgress: (cb) => ipcRenderer.on('update:progress', (_e, payload) => cb(payload)),
+  onUpdateReady: (cb) => ipcRenderer.on('update:ready', () => cb()),
+
+  integrationsGet: () => ipcRenderer.invoke('integrations:get'),
+  integrationsSave: (config) => ipcRenderer.invoke('integrations:save', config),
 });
