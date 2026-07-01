@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm start *)",
+      "Bash(node node_modules/electron/install.js)",
+      "Bash(rm -rf node_modules/electron)",
+      "Bash(echo \"EXIT:$?\")",
+      "Read(//c/Users/maffi/AppData/Local/electron/Cache/**)",
+      "Read(//c/Users/maffi/AppData/Local/electron/**)",
+      "Bash(ls -la \"/c/Users/maffi/AppData/Local/electron/Cache/8b2d20de65cadcdceec486f4c1dd5a747aebc267630583f865354d8c28b27821/electron-v33.2.0-win32-x64.zip\" \"/c/Users/maffi/AppData/Local/electron/Cache/4b092cc678b6ff8448c5ab35fabca1710dccc91cfbff065280601a184126b0fe/electron-v33.4.11-win32-x64.zip\")",
+      "Read(//tmp/**)",
+      "Bash(powershell -Command 'Get-Process electron | Select-Object Id,MainWindowTitle | Where-Object {$_.MainWindowTitle -ne '\\\\'''\\\\''}')",
+      "Bash(powershell -Command \"Get-Process electron -ErrorAction SilentlyContinue | Stop-Process -Force\")"
+    ]
+  }
+}

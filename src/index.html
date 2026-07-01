@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<title>J.A.R.V.I.S.</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="pre-auth">
+  <div class="grid-bg"></div>
+  <div class="scanlines"></div>
+
+  <!-- Login / Registrierung -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-panel">
+      <div class="brand" style="justify-content:center; margin-bottom:22px;">
+        <span class="brand-dot"></span>
+        JARVIS <span class="brand-sub">// AI ASSISTANT</span>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" data-auth-tab="login">Anmelden</button>
+        <button type="button" class="auth-tab-btn" data-auth-tab="register">Registrieren</button>
+      </div>
+
+      <form id="loginForm" class="auth-form active">
+        <label>E-Mail
+          <input type="email" id="loginEmail" required autocomplete="username" />
+        </label>
+        <label>Passwort
+          <input type="password" id="loginPassword" required autocomplete="current-password" />
+        </label>
+        <div class="auth-error" id="loginError"></div>
+        <button type="submit" class="save-btn">Anmelden</button>
+      </form>
+
+      <form id="registerForm" class="auth-form">
+        <label>Dein Name
+          <input type="text" id="registerName" placeholder="z.B. Luca" required />
+        </label>
+        <label>E-Mail
+          <input type="email" id="registerEmail" required autocomplete="username" />
+        </label>
+        <label>Passwort
+          <input type="password" id="registerPassword" required autocomplete="new-password" />
+        </label>
+        <div class="auth-error" id="registerError"></div>
+        <button type="submit" class="save-btn">Konto erstellen &amp; JARVIS starten</button>
+      </form>
+
+      <div class="auth-hint">Deine Zugangsdaten werden nur lokal auf diesem PC gespeichert - für jede Person ein eigenes, komplett getrenntes JARVIS-Profil.</div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      JARVIS <span class="brand-sub">// AI ASSISTANT</span>
+    </div>
+    <div class="topbar-clock" id="topbarClock">00:00:00</div>
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">STANDBY</span>
+    </div>
+    <button class="gear-btn" id="settingsBtn" title="Einstellungen">⚙</button>
+  </header>
+
+  <main class="dashboard">
+    <aside class="dashboard-col dashboard-col-left">
+      <section class="glass-panel">
+        <div class="panel-title">GEDÄCHTNIS</div>
+        <div class="stat-row">
+          <div class="stat-value" id="kpiFacts">0</div>
+          <div class="stat-label">gemerkte Fakten</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-value" id="kpiSkills">0</div>
+          <div class="stat-label">gelernte Skills</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-value" id="kpiCommands">0</div>
+          <div class="stat-label">Befehle (Sitzung)</div>
+        </div>
+      </section>
+
+      <section class="glass-panel panel-feed">
+        <div class="panel-title">SCREEN FEED</div>
+        <div class="feed-box">
+          <div class="feed-scan"></div>
+          <div class="feed-label">Standby &mdash; sag &quot;was siehst du?&quot;</div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="orb-stage">
+      <div class="orb-wrap">
+        <canvas id="reactorCanvas" width="340" height="340"></canvas>
+        <div class="orb-label" id="reactorLabel">Mikrofon drücken zum Sprechen</div>
+      </div>
+
+      <div class="chart-row">
+        <div class="glass-panel chart-panel">
+          <div class="panel-title">AUDIO SIGNAL</div>
+          <canvas id="waveCanvas" width="520" height="110"></canvas>
+        </div>
+        <div class="glass-panel chart-panel">
+          <div class="panel-title">AKTIVITÄT</div>
+          <canvas id="barCanvas" width="220" height="110"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <aside class="dashboard-col dashboard-col-right">
+      <section class="glass-panel">
+        <div class="panel-title">STATUS</div>
+        <div class="mode-badge" id="kpiMode">STANDBY</div>
+      </section>
+
+      <section class="glass-panel panel-permissions">
+        <div class="panel-title">BERECHTIGUNGEN</div>
+        <div class="perm-list" id="permStatusList"></div>
+      </section>
+    </aside>
+
+    <section class="glass-panel panel-console">
+      <div class="panel-title">TRANSCRIPT LOG</div>
+      <div class="console-log" id="consoleLog"></div>
+      <form class="console-input" id="textForm">
+        <button type="button" class="mic-btn" id="micBtn" title="Gedrückt halten und sprechen">🎤</button>
+        <span class="prompt-caret">&gt;</span>
+        <input type="text" id="textInput" placeholder="...oder hier tippen und Enter drücken" autocomplete="off" />
+      </form>
+    </section>
+  </main>
+
+  <!-- Settings Overlay -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-panel">
+      <div class="settings-header">
+        <div class="settings-title">SYSTEM CONFIG</div>
+        <button class="close-btn" id="closeSettingsBtn">✕</button>
+      </div>
+      <div class="settings-tabs">
+        <button class="tab-btn active" data-tab="ai">KI</button>
+        <button class="tab-btn" data-tab="speech">Sprache</button>
+        <button class="tab-btn" data-tab="design">Design</button>
+        <button class="tab-btn" data-tab="permissions">Berechtigungen</button>
+        <button class="tab-btn" data-tab="knowledge">Wissen &amp; Lernen</button>
+        <button class="tab-btn" data-tab="profiles">Profile</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-ai">
+        <label>KI-Anbieter
+          <select id="provider">
+            <option value="gemini">Google Gemini (kostenlos)</option>
+            <option value="anthropic">Anthropic Claude (kostenpflichtig)</option>
+          </select>
+        </label>
+        <label id="apiKeyLabel">API-Key
+          <input type="password" id="apiKey" placeholder="API-Key hier einfügen" />
+        </label>
+        <div id="apiKeyHint" style="font-size:12px; opacity:0.6;"></div>
+        <label>Modell
+          <select id="model"></select>
+        </label>
+        <label>Persönlichkeit / System-Prompt
+          <textarea id="personality" rows="5"></textarea>
+        </label>
+        <label>Dein Name (für die Begrüßung)
+          <input type="text" id="userName" placeholder="z.B. Luca" />
+        </label>
+      </div>
+
+      <div class="tab-panel" id="tab-speech">
+        <label>Sprache
+          <select id="language">
+            <option value="de-DE">Deutsch</option>
+            <option value="en-US">English</option>
+          </select>
+        </label>
+        <label>Stimme
+          <select id="voiceName"></select>
+        </label>
+        <label>Sprechtempo: <span id="rateVal">1.0</span>
+          <input type="range" id="voiceRate" min="0.5" max="2" step="0.1" value="1" />
+        </label>
+        <label>Tonlage (niedriger = tiefere Stimme): <span id="pitchVal">1.0</span>
+          <input type="range" id="voicePitch" min="0.3" max="1.5" step="0.05" value="1" />
+        </label>
+        <div style="opacity:0.6; font-size:12px;">Kein Dauerzuhören mehr - Mikrofon-Knopf im Transcript-Log drücken und sprechen.</div>
+        <label>Globale Tastenkombination fürs Mikrofon (funktioniert auch außerhalb des Fensters)
+          <input type="text" id="hotkey" placeholder="Alt+J" />
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="autoStart" />
+          Beim Windows-Start automatisch öffnen
+        </label>
+        <label>Programme beim Start öffnen (kommagetrennt)
+          <input type="text" id="autoLaunchApps" placeholder="spotify, discord" />
+        </label>
+      </div>
+
+      <div class="tab-panel" id="tab-design">
+        <label>Akzentfarbe</label>
+        <div class="swatch-row" id="themeSwatches">
+          <button type="button" class="swatch swatch-orange" data-theme="orange" title="Orange (Hologram)"></button>
+          <button type="button" class="swatch swatch-cyan" data-theme="cyan" title="Cyan (Stark Expo HUD)"></button>
+          <button type="button" class="swatch swatch-blue" data-theme="blue" title="Blau (AI Core)"></button>
+          <button type="button" class="swatch swatch-green" data-theme="green" title="Grün"></button>
+          <button type="button" class="swatch swatch-purple" data-theme="purple" title="Lila"></button>
+        </div>
+        <div style="font-size:12px; opacity:0.6;">Die Statusfarben (Grün = Zuhören, Rot = Antworten) bleiben unabhängig davon immer gleich, damit sie erkennbar bleiben.</div>
+      </div>
+
+      <div class="tab-panel" id="tab-permissions">
+        <label class="checkbox-label">
+          <input type="checkbox" id="permScreen" />
+          Bildschirm sehen
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="permApps" />
+          Programme starten
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="permFiles" />
+          Dateizugriff
+        </label>
+      </div>
+
+      <div class="tab-panel" id="tab-knowledge">
+        <div class="knowledge-section">
+          <div class="knowledge-title">Gemerkte Fakten</div>
+          <div id="factsList" class="knowledge-list"></div>
+        </div>
+        <div class="knowledge-section">
+          <div class="knowledge-title">Gelernte Kommandos</div>
+          <div id="learnedList" class="knowledge-list"></div>
+        </div>
+        <button class="danger-btn" id="resetMemoryBtn">Gedächtnis zurücksetzen</button>
+      </div>
+
+      <div class="tab-panel" id="tab-profiles">
+        <div class="knowledge-section">
+          <div class="knowledge-title">Angemeldet als</div>
+          <div id="accountInfo" style="font-size:13px;"></div>
+        </div>
+        <div style="font-size:12px; opacity:0.6;">Jede Person hat mit ihrem eigenen Konto (E-Mail + Passwort) ihr eigenes, komplett getrenntes JARVIS-Profil. Zum Wechseln der Person: abmelden und mit dem anderen Konto neu anmelden.</div>
+        <button class="danger-btn" id="logoutBtn" type="button">Abmelden</button>
+      </div>
+
+      <div class="settings-footer">
+        <button class="save-btn" id="saveSettingsBtn">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="hud.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="speech.js"></script>
+  <script src="meeting.js"></script>
+  <script src="ui/profiles.js"></script>
+  <script src="ui/settings.js"></script>
+  <script src="renderer.js"></script>
+  <script src="ui/auth.js"></script>
+</body>
+</html>
