@@ -36,6 +36,7 @@ function transcribeFile(wavPath, culture = 'de-DE') {
 }
 
 const MAX_CONSECUTIVE_CRASHES = 3;
+const MIN_RUNTIME_MS = 800; // ein Absturz fast sofort nach dem Start gilt als "schnell fehlgeschlagen"
 
 class NativeSpeechRecognizer extends EventEmitter {
   constructor() {
@@ -43,14 +44,15 @@ class NativeSpeechRecognizer extends EventEmitter {
     this.proc = null;
     this.stopped = true;
     this.consecutiveCrashes = 0;
-    this.gotReadyThisRun = false;
+    this.lastStderr = '';
   }
 
   start(culture = 'de-DE') {
     this.stop();
     this.stopped = false;
     this.culture = culture;
-    this.gotReadyThisRun = false;
+    this.lastStderr = '';
+    const startedAt = Date.now();
 
     this.proc = spawn('powershell.exe', [
       '-NoProfile',
@@ -66,7 +68,6 @@ class NativeSpeechRecognizer extends EventEmitter {
       try {
         const msg = JSON.parse(line);
         if (msg.type === 'ready') {
-          this.gotReadyThisRun = true;
           this.consecutiveCrashes = 0; // erfolgreicher Start setzt den Zähler zurück
           this.emit('ready');
         } else if (msg.type === 'partial') this.emit('partial', msg.text);
@@ -78,6 +79,7 @@ class NativeSpeechRecognizer extends EventEmitter {
     });
 
     this.proc.stderr.on('data', (data) => {
+      this.lastStderr += data.toString();
       this.emit('stderr', data.toString());
     });
 
@@ -85,10 +87,16 @@ class NativeSpeechRecognizer extends EventEmitter {
       this.proc = null;
       if (this.stopped) return;
 
+      const ranMs = Date.now() - startedAt;
       this.consecutiveCrashes += 1;
-      if (this.consecutiveCrashes > MAX_CONSECUTIVE_CRASHES) {
+
+      // Fällt der Prozess extrem schnell (fast sofort) und wiederholt aus,
+      // sofort abbrechen statt weiter zu versuchen - vermeidet Nachrichtenfluten.
+      const failedFast = ranMs < MIN_RUNTIME_MS;
+      if (this.consecutiveCrashes > MAX_CONSECUTIVE_CRASHES || (failedFast && this.consecutiveCrashes > 1)) {
         this.stopped = true;
-        this.emit('error', new Error('Spracherkennung konnte nach mehreren Versuchen nicht gestartet werden (evtl. kein Mikrofon oder kein Windows-Sprachpaket für diese Sprache installiert).'));
+        const detail = this.lastStderr.trim() || `Exit-Code ${code}`;
+        this.emit('error', new Error(`Spracherkennung konnte nicht gestartet werden (${detail}). Prüfe unter Windows-Einstellungen > Sound, ob ein Mikrofon als Standard-Eingabegerät ausgewählt ist.`));
         return;
       }
 

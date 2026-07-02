@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, globalShortcut, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, session, globalShortcut, desktopCapturer, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -216,6 +216,7 @@ ipcMain.handle('update:check', () => {
 ipcMain.handle('update:download', () => { autoUpdater.downloadUpdate(); return true; });
 ipcMain.handle('update:install', () => { autoUpdater.quitAndInstall(); return true; });
 ipcMain.handle('app:get-version', () => app.getVersion());
+ipcMain.handle('system:open-sound-settings', () => shell.openExternal('ms-settings:sound'));
 
 ipcMain.handle('integrations:get', () => integrations.get());
 ipcMain.handle('integrations:save', (_event, config) => integrations.save(config));
