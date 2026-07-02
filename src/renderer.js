@@ -77,8 +77,8 @@
     handleTypedMessage(val);
   });
 
-  // Push-to-Talk: Knopf drücken (ODER globale Tastenkombination), sprechen,
-  // Text wird ins Feld geschrieben und sofort gesendet.
+  // Push-to-Talk: Knopf drücken (ODER globale Tastenkombination), sprechen (Aufnahme stoppt
+  // automatisch bei Stille), lokale KI-Transkription (Whisper), Text wird gesendet.
   async function triggerPushToTalk() {
     if (recording || busy) return;
     recording = true;
@@ -88,10 +88,24 @@
     setStatus('listening', 'HÖRE ZU...');
 
     try {
-      const text = await window.jarvis.listenOnce();
-      if (text && text.trim()) {
-        textInput.value = text.trim();
-        handleTypedMessage(text.trim());
+      const samples = await window.micRecorder.recordUntilSilence();
+      if (!samples) {
+        logLine('system', 'Nichts gehört. Bitte noch einmal versuchen.');
+        setStatus('idle', IDLE_LABEL);
+        return;
+      }
+
+      setStatus('thinking', 'TRANSKRIBIERE...');
+      const result = await window.jarvis.transcribeAudio(samples);
+
+      if (result.error) {
+        logLine('system', 'Transkription fehlgeschlagen: ' + result.error);
+        setStatus('idle', IDLE_LABEL);
+        return;
+      }
+      if (result.text && result.text.trim()) {
+        textInput.value = result.text.trim();
+        handleTypedMessage(result.text.trim());
         textInput.value = '';
       } else {
         logLine('system', 'Nichts verstanden. Bitte noch einmal versuchen.');
@@ -110,18 +124,6 @@
 
   micBtn.addEventListener('click', triggerPushToTalk);
   window.jarvis.onShortcutMic(() => triggerPushToTalk());
-
-  window.jarvisSpeech.onPartial = (text) => {
-    if (recording && text) setStatus('listening', text);
-  };
-
-  window.jarvis.onSpeechStatus((status) => {
-    if (status.status === 'error') {
-      logLine('system', 'Spracherkennung: ' + status.message);
-    } else if (status.status === 'restarting') {
-      logLine('system', 'Spracherkennung wird neu gestartet...');
-    }
-  });
 
   window.jarvis.onGreeting((text) => {
     logLine('jarvis', text);

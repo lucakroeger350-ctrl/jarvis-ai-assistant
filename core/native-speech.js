@@ -1,11 +1,18 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const readline = require('readline');
-const { EventEmitter } = require('events');
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'native', 'recognize.ps1');
-const FILE_SCRIPT_PATH = path.join(__dirname, '..', 'native', 'recognize-file.ps1');
+// In der gepackten App liegen .ps1-Skripte im "asarUnpack"-Ordner, da powershell.exe
+// (ein externer Prozess) nicht auf Dateien innerhalb des app.asar-Archivs zugreifen kann.
+// Der reale Pfad ist dann .../app.asar.unpacked/... statt .../app.asar/...
+function resolveNativePath(...segments) {
+  const p = path.join(__dirname, '..', ...segments);
+  return p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
+}
 
+const FILE_SCRIPT_PATH = resolveNativePath('native', 'recognize-file.ps1');
+
+// Wird für die Meeting-Zusammenfassung genutzt (Transkription einer aufgezeichneten WAV-Datei).
+// Die eigentliche Sprachsteuerung (Push-to-Talk) läuft über Whisper, siehe core/whisper-stt.js.
 function transcribeFile(wavPath, culture = 'de-DE') {
   return new Promise((resolve, reject) => {
     const proc = spawn('powershell.exe', [
@@ -35,84 +42,4 @@ function transcribeFile(wavPath, culture = 'de-DE') {
   });
 }
 
-const MAX_CONSECUTIVE_CRASHES = 3;
-const MIN_RUNTIME_MS = 800; // ein Absturz fast sofort nach dem Start gilt als "schnell fehlgeschlagen"
-
-class NativeSpeechRecognizer extends EventEmitter {
-  constructor() {
-    super();
-    this.proc = null;
-    this.stopped = true;
-    this.consecutiveCrashes = 0;
-    this.lastStderr = '';
-  }
-
-  start(culture = 'de-DE') {
-    this.stop();
-    this.stopped = false;
-    this.culture = culture;
-    this.lastStderr = '';
-    const startedAt = Date.now();
-
-    this.proc = spawn('powershell.exe', [
-      '-NoProfile',
-      '-ExecutionPolicy', 'Bypass',
-      '-File', SCRIPT_PATH,
-      '-Culture', culture,
-    ], { windowsHide: true });
-
-    const rl = readline.createInterface({ input: this.proc.stdout });
-    rl.on('line', (line) => {
-      line = line.trim();
-      if (!line) return;
-      try {
-        const msg = JSON.parse(line);
-        if (msg.type === 'ready') {
-          this.consecutiveCrashes = 0; // erfolgreicher Start setzt den Zähler zurück
-          this.emit('ready');
-        } else if (msg.type === 'partial') this.emit('partial', msg.text);
-        else if (msg.type === 'final') this.emit('final', msg.text);
-        else if (msg.type === 'error') this.emit('error', new Error(msg.message));
-      } catch {
-        // ignore non-JSON noise
-      }
-    });
-
-    this.proc.stderr.on('data', (data) => {
-      this.lastStderr += data.toString();
-      this.emit('stderr', data.toString());
-    });
-
-    this.proc.on('exit', (code) => {
-      this.proc = null;
-      if (this.stopped) return;
-
-      const ranMs = Date.now() - startedAt;
-      this.consecutiveCrashes += 1;
-
-      // Fällt der Prozess extrem schnell (fast sofort) und wiederholt aus,
-      // sofort abbrechen statt weiter zu versuchen - vermeidet Nachrichtenfluten.
-      const failedFast = ranMs < MIN_RUNTIME_MS;
-      if (this.consecutiveCrashes > MAX_CONSECUTIVE_CRASHES || (failedFast && this.consecutiveCrashes > 1)) {
-        this.stopped = true;
-        const detail = this.lastStderr.trim() || `Exit-Code ${code}`;
-        this.emit('error', new Error(`Spracherkennung konnte nicht gestartet werden (${detail}). Prüfe unter Windows-Einstellungen > Sound, ob ein Mikrofon als Standard-Eingabegerät ausgewählt ist.`));
-        return;
-      }
-
-      this.emit('crashed', code);
-      setTimeout(() => { if (!this.stopped) this.start(this.culture); }, 1500);
-    });
-  }
-
-  stop() {
-    this.stopped = true;
-    this.consecutiveCrashes = 0;
-    if (this.proc) {
-      this.proc.kill();
-      this.proc = null;
-    }
-  }
-}
-
-module.exports = { NativeSpeechRecognizer, transcribeFile };
+module.exports = { transcribeFile };

@@ -7,6 +7,13 @@ const { shell } = require('electron');
 const PROTOCOL_APPS = {
   discord: 'discord://',
   spotify: 'spotify://',
+  'epic games launcher': 'com.epicgames.launcher://',
+  'epic games': 'com.epicgames.launcher://',
+  epicgames: 'com.epicgames.launcher://',
+  epic: 'com.epicgames.launcher://',
+  steam: 'steam://open/main',
+  whatsapp: 'whatsapp://',
+  spotify2: 'spotify://', // Duplikat als Absicherung falls "spotify" umbenannt wird
 };
 
 // Diese Namen sind echte, im PATH bekannte Windows-Befehle.
@@ -18,8 +25,13 @@ const KNOWN_COMMANDS = {
   explorer: 'explorer',
   vscode: 'code',
   'visual studio code': 'code',
-  steam: 'steam',
   outlook: 'outlook',
+  paint: 'mspaint',
+  taskmanager: 'taskmgr',
+  'task-manager': 'taskmgr',
+  systemsteuerung: 'control',
+  einstellungen: 'ms-settings:',
+  browser: 'https://www.google.com',
 };
 
 function launchApp(name) {

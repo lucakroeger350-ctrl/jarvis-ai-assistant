@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const memory = require('./core/memory');
 const brain = require('./core/brain');
-const { NativeSpeechRecognizer } = require('./core/native-speech');
+const whisperStt = require('./core/whisper-stt');
 const { launchApp } = require('./core/launcher');
 const { buildGreeting } = require('./core/greeting');
 const calendar = require('./core/calendar');
@@ -15,8 +15,6 @@ const { autoUpdater } = require('electron-updater');
 const integrations = require('./core/integrations');
 
 let mainWindow;
-const recognizer = new NativeSpeechRecognizer();
-let pendingCapture = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -103,26 +101,6 @@ async function runStartupRoutine() {
   }
 }
 
-recognizer.on('ready', () => send('speech:status', { status: 'ready' }));
-recognizer.on('partial', (text) => send('speech:partial', { text }));
-recognizer.on('final', (text) => {
-  if (pendingCapture) {
-    const resolve = pendingCapture;
-    pendingCapture = null;
-    resolve(text);
-  }
-  recognizer.stop();
-});
-recognizer.on('error', (err) => {
-  if (pendingCapture) {
-    const resolve = pendingCapture;
-    pendingCapture = null;
-    resolve(null);
-  }
-  send('speech:status', { status: 'error', message: err.message });
-});
-recognizer.on('crashed', () => send('speech:status', { status: 'restarting' }));
-
 // Auto-Update: prüft nur passiv gegen die veröffentlichten GitHub-Releases und
 // informiert den Nutzer. Heruntergeladen/installiert wird ausschließlich nach
 // expliziter Bestätigung durch den Nutzer - nie automatisch im Hintergrund.
@@ -182,7 +160,6 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  recognizer.stop();
   if (process.platform !== 'darwin') app.quit();
 });
 
@@ -253,26 +230,15 @@ ipcMain.handle('memory:delete', (_event, id) => memory.deleteMemoryFact(id));
 ipcMain.handle('skills:get-learned', () => memory.getLearnedSkills());
 ipcMain.handle('skills:delete-learned', (_event, id) => memory.deleteLearnedSkill(id));
 
-// Push-to-Talk: startet die Spracherkennung nur für einen einzelnen Satz und
-// stoppt sie danach sofort wieder (kein Dauerzuhören, kein UI-Blocking).
-ipcMain.handle('speech:listen-once', () => {
-  return new Promise((resolve) => {
-    if (pendingCapture) {
-      const prev = pendingCapture;
-      pendingCapture = null;
-      prev(null);
-    }
-    pendingCapture = resolve;
-
+// Push-to-Talk: Der Renderer nimmt das Mikrofon selbst auf (bis Stille erkannt wird)
+// und schickt die rohen 16kHz-Audiosamples hierher zur Whisper-Transkription.
+ipcMain.handle('speech:transcribe', async (_event, float32Samples) => {
+  try {
     const settings = memory.getSettings();
-    recognizer.start(settings.language || 'de-DE');
-
-    setTimeout(() => {
-      if (pendingCapture === resolve) {
-        pendingCapture = null;
-        recognizer.stop();
-        resolve(null);
-      }
-    }, 12000);
-  });
+    const language = (settings.language || 'de-DE').startsWith('en') ? 'english' : 'german';
+    const text = await whisperStt.transcribeSamples(Float32Array.from(float32Samples), language);
+    return { text };
+  } catch (err) {
+    return { error: err.message };
+  }
 });

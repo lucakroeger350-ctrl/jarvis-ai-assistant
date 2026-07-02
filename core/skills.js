@@ -10,8 +10,11 @@ const calendarList = require('../skills/calendar-list');
 const calendarDelete = require('../skills/calendar-delete');
 const meetingStart = require('../skills/meeting-start');
 const meetingSummarize = require('../skills/meeting-summarize');
+const webFetch = require('../skills/web-fetch');
+const shutdownPc = require('../skills/system-shutdown');
+const cancelShutdown = require('../skills/system-cancel-shutdown');
 
-const ALL_SKILLS = [openApp, systemInfo, webSearch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize];
+const ALL_SKILLS = [openApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown];
 
 function getToolDefinitions() {
   return ALL_SKILLS.map((s) => ({

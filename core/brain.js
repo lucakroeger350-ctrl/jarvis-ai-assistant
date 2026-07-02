@@ -13,6 +13,8 @@ function buildSystemPrompt(settings) {
   return [
     settings.personality,
     'Du kannst Werkzeuge (Tools) benutzen, um Aktionen auf dem PC des Nutzers auszuführen, den Bildschirm zu sehen, dir Dinge zu merken und dazuzulernen.',
+    'Wenn du nicht weißt, wie man etwas Angefragtes tut (z.B. ein unbekanntes Programm öffnen), nutze web_search und web_fetch, um es herauszufinden, und speichere das Ergebnis danach mit remember_fact oder learn_skill, damit du es dir für künftige Anfragen merkst. Tu dies nur, wenn der Nutzer aktiv etwas angefragt hat - surfe niemals unaufgefordert im Hintergrund.',
+    'Für PC-steuernde Aktionen mit größerer Tragweite (z.B. shutdown_pc) frage IMMER erst explizit nach Bestätigung, bevor du sie ausführst - rufe das Tool beim ersten Mal nur informativ auf (confirmed=false) und erst nach ausdrücklicher Zustimmung des Nutzers in einer neuen Nachricht mit confirmed=true.',
     'Antworte kurz, natürlich und sprechbar (dein Text wird laut vorgelesen) - keine Markdown-Formatierung, keine Aufzählungszeichen.',
     memoryContext,
     learnedContext,

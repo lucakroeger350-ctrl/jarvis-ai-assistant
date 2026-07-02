@@ -1,15 +1,14 @@
 (function () {
   // Sprachausgabe (TTS) läuft im Renderer über die Web Speech API (funktioniert lokal in Electron).
-  // Spracherkennung (STT) läuft nativ über Windows Speech Recognition im Hauptprozess (core/native-speech.js)
-  // und wird ausschließlich per Push-to-Talk-Knopf für einen einzelnen Satz gestartet (kein Dauerzuhören,
-  // damit die Oberfläche nicht dauerhaft blockiert oder Ressourcen verbraucht).
+  // Spracherkennung (STT) läuft über lokales Whisper (core/whisper-stt.js) - der Renderer nimmt
+  // per Push-to-Talk-Knopf das Mikrofon selbst auf (src/mic-recorder.js) und schickt die Samples
+  // zur Transkription an den Hauptprozess.
 
   let language = 'de-DE';
   let voiceRate = 1.0;
   let voicePitch = 1.0;
   let voiceName = '';
   let speaking = false;
-  let onPartial = null;
 
   const MALE_VOICE_HINTS = ['stefan', 'david', 'mark', 'conrad', 'ralf', 'george'];
 
@@ -72,14 +71,10 @@
     voiceName = settings.voiceName || '';
   }
 
-  // Live-Zwischenergebnisse während einer Push-to-Talk-Aufnahme
-  window.jarvis.onSpeechPartial((text) => { if (onPartial) onPartial(text); });
-
   window.jarvisSpeech = {
     configure,
     speak,
     stopSpeaking,
     getVoices,
-    set onPartial(fn) { onPartial = fn; },
   };
 })();

@@ -10,14 +10,12 @@ contextBridge.exposeInMainWorld('jarvis', {
   getLearnedSkills: () => ipcRenderer.invoke('skills:get-learned'),
   deleteLearnedSkill: (id) => ipcRenderer.invoke('skills:delete-learned', id),
 
-  listenOnce: () => ipcRenderer.invoke('speech:listen-once'),
+  transcribeAudio: (float32Samples) => ipcRenderer.invoke('speech:transcribe', Array.from(float32Samples)),
 
   addAppointment: (appt) => ipcRenderer.invoke('calendar:add', appt),
   getAppointments: () => ipcRenderer.invoke('calendar:list'),
   deleteAppointment: (id) => ipcRenderer.invoke('calendar:delete', id),
 
-  onSpeechPartial: (cb) => ipcRenderer.on('speech:partial', (_e, payload) => cb(payload.text)),
-  onSpeechStatus: (cb) => ipcRenderer.on('speech:status', (_e, payload) => cb(payload)),
   onGreeting: (cb) => ipcRenderer.on('app:greeting', (_e, payload) => cb(payload.text)),
   onAnnounce: (cb) => ipcRenderer.on('app:announce', (_e, payload) => cb(payload.text)),
   onShortcutMic: (cb) => ipcRenderer.on('shortcut:mic', () => cb()),
