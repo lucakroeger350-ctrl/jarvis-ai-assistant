@@ -27,6 +27,7 @@ const passwordVault = require('./core/password-vault');
 const autoType = require('./core/auto-type');
 const vaultBridge = require('./core/vault-bridge');
 const deepDiagnostics = require('./core/deep-diagnostics');
+const companionOverlay = require('./core/companion-overlay');
 
 let mainWindow;
 let gamingOverlayWindow = null;
@@ -382,6 +383,7 @@ app.whenReady().then(() => {
   meeting.init(send);
   visualizerBridge.init(send);
   vaultBridge.init(openVaultPinPopup);
+  companionOverlay.init(() => mainWindow);
 
   const settings = memory.getSettings();
   applyAllHotkeys(settings);
@@ -409,6 +411,7 @@ app.on('will-quit', () => {
 });
 
 ipcMain.on('app:error', (_event, message) => showSystemErrorPopup(message));
+ipcMain.on('app:status-changed', (_event, state) => companionOverlay.setState(state));
 
 ipcMain.handle('jarvis:chat', async (_event, message) => {
   const gamingResponse = gamingMode.respondToPrompt(message);

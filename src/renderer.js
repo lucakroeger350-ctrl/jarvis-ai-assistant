@@ -19,6 +19,7 @@
 
   function setStatus(state, label) {
     reactorLabel.textContent = label;
+    window.jarvis.reportStatus(state);
     if (window.hud) window.hud.setState(state);
     if (window.dashboard) {
       window.dashboard.setMode(MODE_LABELS[state] || 'STANDBY');

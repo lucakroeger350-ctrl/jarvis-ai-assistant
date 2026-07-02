@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('jarvis', {
   onGhostStateChanged: (cb) => ipcRenderer.on('ghost:state-changed', (_e, payload) => cb(payload.active)),
   onCleanupLogLine: (cb) => ipcRenderer.on('cleanup:log-line', (_e, payload) => cb(payload.text)),
   reportError: (message) => ipcRenderer.send('app:error', message),
+  reportStatus: (state) => ipcRenderer.send('app:status-changed', state),
   onShortcutMic: (cb) => ipcRenderer.on('shortcut:mic', () => cb()),
 
   onMeetingStart: (cb) => ipcRenderer.on('meeting:start', () => cb()),
