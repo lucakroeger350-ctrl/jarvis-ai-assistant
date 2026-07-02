@@ -6,6 +6,8 @@
   const adSlot = document.getElementById('adSlot');
 
   const TIER_LABELS = { guest: 'Gast', free: 'Kostenlos', vip: 'VIP' };
+  const kpiCoinsEl = document.getElementById('kpiCoins');
+  const kpiTierEl = document.getElementById('kpiTier');
 
   async function refreshAccountUi() {
     const state = await window.jarvis.getAccountState();
@@ -17,6 +19,10 @@
       const coinsLine = state.tier === 'free' ? `<br/>Coins: ${state.coins}` : '';
       vipStatusEl.innerHTML = `Stufe: <strong>${TIER_LABELS[state.tier] || state.tier}</strong><br/>Fragen genutzt: ${limit}${coinsLine}`;
     }
+
+    if (kpiCoinsEl) kpiCoinsEl.textContent = state.tier === 'vip' ? '∞' : String(state.coins || 0);
+    if (kpiTierEl) kpiTierEl.textContent = (TIER_LABELS[state.tier] || state.tier).toUpperCase();
+
     return state;
   }
 
