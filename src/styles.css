@@ -654,3 +654,21 @@ body.pre-auth .auth-overlay { display: flex; }
   margin-top: 22px; font-family: 'Share Tech Mono', monospace; font-size: 12px;
   color: #4fc3ff; opacity: 0.5; letter-spacing: 1.5px;
 }
+
+/* Gast-Login-Button */
+.guest-btn {
+  width: 100%; margin-top: 14px; padding: 11px; background: transparent;
+  border: 1px dashed var(--panel-border); color: var(--text-dim); cursor: pointer;
+  font-family: 'Inter', sans-serif; letter-spacing: 0.5px; transition: all 0.25s var(--ease);
+}
+.guest-btn:hover { color: var(--text); border-color: var(--panel-border-strong); }
+
+/* Werbeplatz für Gast-/kostenlose Nutzer, wird für VIP ausgeblendet */
+.ad-slot {
+  margin: 10px 22px 16px; padding: 12px 16px; border: 1px dashed var(--panel-border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim);
+}
+.ad-slot.hidden { display: none; }
+.ad-slot-label { letter-spacing: 3px; opacity: 0.6; }
+.ad-slot-cta { opacity: 0.8; }

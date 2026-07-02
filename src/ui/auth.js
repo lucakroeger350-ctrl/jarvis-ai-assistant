@@ -5,6 +5,7 @@
   const registerForm = document.getElementById('registerForm');
   const loginError = document.getElementById('loginError');
   const registerError = document.getElementById('registerError');
+  const guestBtn = document.getElementById('guestBtn');
 
   function showForm(name) {
     authForms.forEach((f) => f.classList.remove('active'));
@@ -51,6 +52,11 @@
     } catch (err) {
       registerError.textContent = cleanError(err);
     }
+  });
+
+  guestBtn.addEventListener('click', async () => {
+    await window.jarvis.continueAsGuest();
+    await unlockApp();
   });
 
   function cleanError(err) {

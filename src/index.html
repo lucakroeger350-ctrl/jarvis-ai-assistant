@@ -50,6 +50,9 @@
       <div class="auth-hint">
         Deine Zugangsdaten werden nur lokal auf diesem PC gespeichert - für jede Person ein eigenes, komplett getrenntes JARVIS-Profil.
       </div>
+
+      <button type="button" class="guest-btn" id="guestBtn">Als Gast fortfahren</button>
+      <div class="auth-hint">Als Gast kannst du nur mit JARVIS sprechen (bis zu 150 Fragen), ohne Module. Melde dich an für mehr.</div>
     </div>
   </div>
 
@@ -137,6 +140,11 @@
           <div class="perm-list" id="permStatusList"></div>
         </div>
       </footer>
+
+      <div class="ad-slot" id="adSlot">
+        <div class="ad-slot-label">WERBUNG</div>
+        <div class="ad-slot-cta">Werde VIP, um Werbung zu entfernen und alle Module freizuschalten.</div>
+      </div>
     </main>
   </div>
 
@@ -154,6 +162,7 @@
         <button class="tab-btn" data-tab="permissions">Berechtigungen</button>
         <button class="tab-btn" data-tab="knowledge">Wissen &amp; Lernen</button>
         <button class="tab-btn" data-tab="profiles">Profile</button>
+        <button class="tab-btn" data-tab="vip">VIP</button>
       </div>
 
       <div class="tab-panel active" id="tab-ai">
@@ -286,6 +295,26 @@
         </div>
       </div>
 
+      <div class="tab-panel" id="tab-vip">
+        <div class="knowledge-section">
+          <div class="knowledge-title">Konto-Status</div>
+          <div id="vipStatus" style="font-size:13px;"></div>
+        </div>
+        <div class="knowledge-section" style="margin-top:18px;">
+          <div class="knowledge-title">VIP abonnieren</div>
+          <div style="font-size:12px; opacity:0.65; margin-bottom:8px;">Zahlungsabwicklung folgt in Kürze - kommt direkt in der App, kein separater Download nötig.</div>
+          <button class="save-btn" id="subscribeVipBtn" type="button" disabled>VIP abonnieren (bald verfügbar)</button>
+        </div>
+        <div class="knowledge-section" style="margin-top:18px;">
+          <div class="knowledge-title">Aktivierungscode</div>
+          <label>Code
+            <input type="text" id="vipCode" placeholder="Aktivierungscode eingeben" />
+          </label>
+          <button class="save-btn" id="activateVipBtn" type="button" style="margin-top:8px;">Aktivieren</button>
+          <div class="auth-error" id="vipCodeError"></div>
+        </div>
+      </div>
+
       <div class="settings-footer">
         <button class="save-btn" id="saveSettingsBtn">Speichern</button>
         <div style="text-align:center; font-size:11px; color:var(--text-dim); margin-top:12px;">JARVIS wurde erstellt von <strong style="color:var(--amber);">Veylo40</strong></div>
@@ -315,6 +344,7 @@
   <script src="meeting.js"></script>
   <script src="ui/profiles.js"></script>
   <script src="ui/settings.js"></script>
+  <script src="ui/vip.js"></script>
   <script src="renderer.js"></script>
   <script src="ui/auth.js"></script>
 </body>

@@ -40,7 +40,11 @@ contextBridge.exposeInMainWorld('jarvis', {
   login: (email, password) => ipcRenderer.invoke('auth:login', { email, password }),
   logout: () => ipcRenderer.invoke('auth:logout'),
   getSession: () => ipcRenderer.invoke('auth:get-session'),
+  continueAsGuest: () => ipcRenderer.invoke('auth:continue-as-guest'),
   sessionReady: () => ipcRenderer.invoke('app:session-ready'),
+
+  getAccountState: () => ipcRenderer.invoke('account:get-state'),
+  activateVip: (code) => ipcRenderer.invoke('account:activate-vip', code),
 
   getAppVersion: () => ipcRenderer.invoke('app:get-version'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),

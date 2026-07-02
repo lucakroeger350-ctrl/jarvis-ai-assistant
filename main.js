@@ -17,6 +17,7 @@ const piperTts = require('./core/piper-tts');
 const { checkSystem } = require('./core/hardware-monitor');
 const visualizerBridge = require('./core/visualizer-bridge');
 const networkScan = require('./core/network-scan');
+const account = require('./core/account');
 
 let mainWindow;
 
@@ -245,11 +246,21 @@ ipcMain.handle('settings:save', (_event, settings) => {
   return saved;
 });
 
-ipcMain.handle('auth:register', (_event, { email, password, displayName }) => auth.register(email, password, displayName));
-ipcMain.handle('auth:login', (_event, { email, password }) => auth.login(email, password));
+ipcMain.handle('auth:register', (_event, { email, password, displayName }) => {
+  account.endGuestSession();
+  return auth.register(email, password, displayName);
+});
+ipcMain.handle('auth:login', (_event, { email, password }) => {
+  account.endGuestSession();
+  return auth.login(email, password);
+});
 ipcMain.handle('auth:logout', () => auth.logout());
 ipcMain.handle('auth:get-session', () => auth.getSession());
+ipcMain.handle('auth:continue-as-guest', () => { account.startGuestSession(); return true; });
 ipcMain.handle('app:session-ready', () => { runStartupRoutine(); return true; });
+
+ipcMain.handle('account:get-state', () => account.getAccountState());
+ipcMain.handle('account:activate-vip', (_event, code) => account.activateVip(code));
 
 ipcMain.handle('update:check', () => {
   if (!app.isPackaged) return { error: 'Update-Check funktioniert nur in der installierten Version, nicht im Entwicklungsmodus.' };

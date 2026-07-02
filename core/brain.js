@@ -2,6 +2,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const memory = require('./memory');
 const skills = require('./skills');
+const account = require('./account');
 const { checkCreatorQuestion } = require('./easter-eggs');
 
 function buildSystemPrompt(settings) {
@@ -22,10 +23,23 @@ function buildSystemPrompt(settings) {
   ].filter(Boolean).join('\n\n');
 }
 
+// Prüft VIP-Sperren/Coins vor jedem Skill-Aufruf, egal welcher KI-Provider ihn anfordert.
+async function runGatedSkill(name, input, context) {
+  const gate = account.canUseSkill(name);
+  if (!gate.allowed) return { error: gate.reason };
+  const result = await skills.runSkill(name, input, context);
+  if (gate.cost) account.spendCoins(gate.cost);
+  return result;
+}
+
 async function chat(userMessage) {
   // Hart codiertes Easter Egg: umgeht die KI-API komplett, kein API-Aufruf, keine Kosten.
   const creatorEasterEgg = checkCreatorQuestion(userMessage);
   if (creatorEasterEgg) return creatorEasterEgg;
+
+  const messageCheck = account.canSendMessage();
+  if (!messageCheck.allowed) return { text: messageCheck.reason };
+  account.recordMessage();
 
   const settings = memory.getSettings();
   if (!settings.apiKey) {
@@ -75,7 +89,7 @@ async function chatAnthropic(userMessage, settings) {
 
     const toolResults = [];
     for (const toolUse of toolUses) {
-      const result = await skills.runSkill(toolUse.name, toolUse.input, context);
+      const result = await runGatedSkill(toolUse.name, toolUse.input, context);
       let content;
       if (result && result.image) {
         content = [
@@ -155,7 +169,7 @@ async function chatGemini(userMessage, settings) {
 
     const parts = [];
     for (const call of functionCalls) {
-      const skillResult = await skills.runSkill(call.name, call.args || {}, context);
+      const skillResult = await runGatedSkill(call.name, call.args || {}, context);
       if (skillResult && skillResult.image) {
         parts.push({ functionResponse: { name: call.name, response: { result: 'Screenshot wurde bereitgestellt und ist als Bild angehängt.' } } });
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: skillResult.image } });
