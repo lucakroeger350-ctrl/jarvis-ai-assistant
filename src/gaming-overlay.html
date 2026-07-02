@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; -webkit-app-region: drag; }
+  .orb {
+    width: 96px; height: 96px; border-radius: 50%; margin: 7px;
+    background: radial-gradient(circle at 40% 35%, rgba(255,140,80,0.95), #ff5722 45%, rgba(0,0,0,0) 72%);
+    box-shadow: 0 0 26px 8px rgba(255,87,34,0.45), 0 0 60px 24px rgba(255,87,34,0.15);
+    animation: pulse 2.2s ease-in-out infinite;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(0.92); opacity: 0.85; }
+    50% { transform: scale(1.03); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="orb" id="orb" title="Klicken zum Wiederherstellen"></div>
+  <script>
+    document.getElementById('orb').addEventListener('click', () => {
+      window.gamingOverlay.restore();
+    });
+  </script>
+</body>
+</html>

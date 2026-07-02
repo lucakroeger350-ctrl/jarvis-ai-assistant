@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, globalShortcut, desktopCapturer, shell, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, session, globalShortcut, desktopCapturer, shell, clipboard, screen } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -18,8 +18,10 @@ const { checkSystem } = require('./core/hardware-monitor');
 const visualizerBridge = require('./core/visualizer-bridge');
 const networkScan = require('./core/network-scan');
 const account = require('./core/account');
+const gamingMode = require('./core/gaming-mode');
 
 let mainWindow;
+let gamingOverlayWindow = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -143,6 +145,44 @@ function startHardwareWatchdog() {
   }, 60 * 1000);
 }
 
+function enterGamingOverlay() {
+  gamingMode.closeBackgroundApps();
+  gamingMode.setOverlayActive(true);
+  if (mainWindow) mainWindow.hide();
+
+  const display = screen.getPrimaryDisplay();
+  gamingOverlayWindow = new BrowserWindow({
+    width: 110,
+    height: 110,
+    x: display.workArea.x + display.workArea.width - 130,
+    y: display.workArea.y + 20,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload-gaming-overlay.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  gamingOverlayWindow.loadFile(path.join(__dirname, 'src', 'gaming-overlay.html'));
+  gamingOverlayWindow.on('closed', () => { gamingOverlayWindow = null; });
+}
+
+function exitGamingOverlay() {
+  gamingMode.setOverlayActive(false);
+  if (gamingOverlayWindow) { gamingOverlayWindow.close(); gamingOverlayWindow = null; }
+  if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
+}
+
+function startGamingWatchdog() {
+  gamingMode.startWatcher((gameName) => {
+    send('app:announce', { text: `Sir, ich habe ${gameName} erkannt. Möchten Sie, dass ich mich minimiere?` });
+  });
+}
+
 function startNetworkWatchdog() {
   networkScan.startWatchdog((newDevices) => {
     const list = newDevices.map((d) => d.ip).join(', ');
@@ -216,6 +256,7 @@ app.whenReady().then(() => {
   startEyeCareTimer();
   startHardwareWatchdog();
   startNetworkWatchdog();
+  startGamingWatchdog();
 
   if (app.isPackaged) {
     setTimeout(checkForUpdates, 5000); // stiller Check kurz nach dem Start
@@ -235,8 +276,19 @@ app.on('will-quit', () => {
 });
 
 ipcMain.handle('jarvis:chat', async (_event, message) => {
+  const gamingResponse = gamingMode.respondToPrompt(message);
+  if (gamingResponse.consumed) {
+    if (gamingResponse.action === 'enter') {
+      const text = `Verstanden, Sir. Ich minimiere mich, während Sie ${gamingResponse.gameName} spielen.`;
+      enterGamingOverlay();
+      return { text };
+    }
+    return { text: 'Verstanden, Sir. Ich bleibe im normalen Modus.' };
+  }
   return brain.chat(message);
 });
+
+ipcMain.handle('gaming:restore', () => { exitGamingOverlay(); return true; });
 
 ipcMain.handle('settings:get', () => memory.getSettings());
 ipcMain.handle('settings:save', (_event, settings) => {
