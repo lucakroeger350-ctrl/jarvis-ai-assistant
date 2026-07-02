@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "JARVIS - Futuristischer KI-Sprachassistent im Iron-Man-Stil",
   "main": "main.js",
   "scripts": {
