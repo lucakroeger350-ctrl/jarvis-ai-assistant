@@ -146,6 +146,16 @@
     else window.musicVisualizer.stop();
   });
 
+  window.jarvis.onNightProtocol((text) => {
+    const overlay = document.getElementById('nightOverlay');
+    const textEl = document.getElementById('nightText');
+    logLine('jarvis', text);
+    if (textEl) textEl.textContent = text;
+    if (overlay) overlay.classList.add('active');
+    setStatus('speaking', 'ANTWORTE');
+    window.jarvisSpeech.speak(text, () => setStatus('idle', IDLE_LABEL));
+  });
+
   window.addEventListener('jarvis:visualizer-log', (e) => logLine('system', e.detail));
 
   window.addEventListener('jarvis:meeting-log', (e) => logLine('system', e.detail));

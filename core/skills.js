@@ -25,8 +25,9 @@ const musicVisualizer = require('../skills/music-visualizer');
 const takeScreenshot = require('../skills/take-screenshot');
 const rockPaperScissors = require('../skills/rock-paper-scissors');
 const worldTime = require('../skills/world-time');
+const nightProtocol = require('../skills/night-protocol');
 
-const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime];
+const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol];
 
 function getToolDefinitions() {
   return ALL_SKILLS.map((s) => ({

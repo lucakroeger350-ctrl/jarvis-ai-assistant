@@ -610,3 +610,25 @@ body.pre-auth .auth-overlay { display: flex; }
 .swatch-green { background: radial-gradient(circle at 35% 30%, #d6ffe4, #1fb865 60%, #0e6b3a); }
 .swatch-purple { background: radial-gradient(circle at 35% 30%, #ecdcff, #7e3fd6 60%, #47217c); }
 .swatch-cyan { background: radial-gradient(circle at 35% 30%, #d0fffb, #0ea7bc 60%, #075c68); }
+
+/* Night Protocol: Vollbild-Blackout mit pulsierendem JARVIS-Orb */
+.night-overlay {
+  position: fixed; inset: 0; background: #000; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.9s var(--ease);
+}
+.night-overlay.active { opacity: 1; pointer-events: all; }
+.night-orb {
+  width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, rgba(255,140,80,0.9), var(--amber) 45%, rgba(0,0,0,0) 72%);
+  box-shadow: 0 0 60px 20px rgba(255,87,34,0.35), 0 0 140px 60px rgba(255,87,34,0.12);
+  animation: night-orb-pulse 2.6s ease-in-out infinite;
+}
+@keyframes night-orb-pulse {
+  0%, 100% { transform: scale(0.94); opacity: 0.85; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.night-text {
+  margin-top: 34px; font-family: 'Share Tech Mono', monospace; letter-spacing: 2px;
+  color: var(--text); font-size: 15px; opacity: 0.85; text-align: center; max-width: 520px;
+}

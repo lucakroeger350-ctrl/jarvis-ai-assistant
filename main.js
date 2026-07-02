@@ -16,6 +16,7 @@ const integrations = require('./core/integrations');
 const piperTts = require('./core/piper-tts');
 const { checkSystem } = require('./core/hardware-monitor');
 const visualizerBridge = require('./core/visualizer-bridge');
+const networkScan = require('./core/network-scan');
 
 let mainWindow;
 
@@ -141,6 +142,13 @@ function startHardwareWatchdog() {
   }, 60 * 1000);
 }
 
+function startNetworkWatchdog() {
+  networkScan.startWatchdog((newDevices) => {
+    const list = newDevices.map((d) => d.ip).join(', ');
+    send('app:announce', { text: `Warnung, Sir: Ich habe ${newDevices.length === 1 ? 'ein neues Gerät' : `${newDevices.length} neue Geräte`} in Ihrem WLAN entdeckt (${list}).` });
+  });
+}
+
 async function runStartupRoutine() {
   const settings = memory.getSettings();
   applyAutoStartSetting(!!settings.autoStart);
@@ -206,6 +214,7 @@ app.whenReady().then(() => {
   startReminderTimer();
   startEyeCareTimer();
   startHardwareWatchdog();
+  startNetworkWatchdog();
 
   if (app.isPackaged) {
     setTimeout(checkForUpdates, 5000); // stiller Check kurz nach dem Start

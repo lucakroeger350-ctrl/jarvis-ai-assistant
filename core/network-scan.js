@@ -83,4 +83,21 @@ async function scanNetwork() {
   return { devices: localDevices, newDevices, isFirstScan: known.length === 0 };
 }
 
-module.exports = { scanNetwork };
+// Passiver Hintergrund-Scan: prüft periodisch das WLAN und meldet neue Geräte proaktiv,
+// statt nur auf Anfrage per Skill zu scannen.
+function startWatchdog(onNewDevices, intervalMs = 3 * 60 * 1000) {
+  const tick = async () => {
+    try {
+      const { newDevices, isFirstScan } = await scanNetwork();
+      if (!isFirstScan && newDevices.length > 0) {
+        onNewDevices(newDevices);
+      }
+    } catch {
+      // stille Fehlbehandlung - WLAN-Überwachung ist nicht kritisch
+    }
+  };
+  tick();
+  return setInterval(tick, intervalMs);
+}
+
+module.exports = { scanNetwork, startWatchdog };
