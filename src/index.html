@@ -44,47 +44,12 @@
           <input type="password" id="registerPassword" required autocomplete="new-password" />
         </label>
         <div class="auth-error" id="registerError"></div>
-        <button type="submit" class="save-btn">Code an E-Mail senden</button>
-      </form>
-
-      <form id="verifyForm" class="auth-form">
-        <div style="font-size:13px; color:var(--text-dim);">Wir haben einen 6-stelligen Code an <span id="verifyEmailLabel"></span> gesendet. Bitte eingeben:</div>
-        <label>Bestätigungscode
-          <input type="text" id="verifyCode" maxlength="6" placeholder="123456" required />
-        </label>
-        <div class="auth-error" id="verifyError"></div>
-        <button type="submit" class="save-btn">Bestätigen &amp; JARVIS starten</button>
-        <button type="button" class="tab-btn" id="resendCodeBtn" style="text-align:center;">Code erneut senden</button>
+        <button type="submit" class="save-btn">Konto erstellen &amp; JARVIS starten</button>
       </form>
 
       <div class="auth-hint">
-        Deine Zugangsdaten werden nur lokal auf diesem PC gespeichert - für jede Person ein eigenes, komplett getrenntes JARVIS-Profil.<br />
-        <a href="#" id="openEmailjsConfig" style="color:var(--text-dim);">E-Mail-Versand konfigurieren</a>
+        Deine Zugangsdaten werden nur lokal auf diesem PC gespeichert - für jede Person ein eigenes, komplett getrenntes JARVIS-Profil.
       </div>
-    </div>
-  </div>
-
-  <!-- Kleines Konfigurationsfenster für EmailJS (einmalig, nicht login-pflichtig) -->
-  <div class="modal-overlay" id="emailjsOverlay">
-    <div class="auth-panel">
-      <div class="settings-title" style="margin-bottom:16px;">E-MAIL-VERSAND (EMAILJS)</div>
-      <form id="emailjsForm" style="display:flex; flex-direction:column; gap:14px;">
-        <label>Service ID
-          <input type="text" id="emailjsServiceId" />
-        </label>
-        <label>Template ID
-          <input type="text" id="emailjsTemplateId" />
-        </label>
-        <label>Public Key
-          <input type="text" id="emailjsPublicKey" />
-        </label>
-        <div style="font-size:11px; color:var(--text-dim); line-height:1.5;">
-          Kostenloses Konto auf emailjs.com anlegen, einen "Service" (z.B. Gmail) und ein Template mit den Variablen
-          <code>{{to_email}}</code> und <code>{{code}}</code> erstellen. Die drei Werte hier eintragen.
-        </div>
-        <button type="submit" class="save-btn">Speichern</button>
-        <button type="button" class="tab-btn" id="closeEmailjsConfig">Schließen</button>
-      </form>
     </div>
   </div>
 
@@ -300,7 +265,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="hud.js"></script>
   <script src="dashboard.js"></script>
   <script src="speech.js"></script>

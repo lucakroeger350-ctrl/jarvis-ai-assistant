@@ -123,6 +123,19 @@
     <div class="tagline">Dein persönlicher, lokaler KI-Sprachassistent für Windows</div>
     <div class="cta">
       <a class="btn" id="downloadLink" href="https://github.com/lucakroeger350-ctrl/jarvis-ai-assistant/releases/latest">Jetzt kostenlos herunterladen</a>
+      <script>
+        // Verlinkt den Download-Knopf direkt auf die Installer-.exe der neuesten Version,
+        // statt auf die Release-Seite mit allen Dateien (Nutzer soll nur 1 Klick brauchen).
+        fetch('https://api.github.com/repos/lucakroeger350-ctrl/jarvis-ai-assistant/releases/latest')
+          .then((r) => r.json())
+          .then((release) => {
+            const exeAsset = (release.assets || []).find((a) => a.name.endsWith('.exe'));
+            if (exeAsset) {
+              document.getElementById('downloadLink').href = exeAsset.browser_download_url;
+            }
+          })
+          .catch(() => {});
+      </script>
       <a class="btn-secondary" href="https://github.com/lucakroeger350-ctrl/jarvis-ai-assistant">Quellcode auf GitHub</a>
     </div>
   </header>
