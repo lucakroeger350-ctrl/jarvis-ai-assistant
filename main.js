@@ -26,6 +26,7 @@ const spotifyAuth = require('./core/spotify-auth');
 const passwordVault = require('./core/password-vault');
 const autoType = require('./core/auto-type');
 const vaultBridge = require('./core/vault-bridge');
+const deepDiagnostics = require('./core/deep-diagnostics');
 
 let mainWindow;
 let gamingOverlayWindow = null;
@@ -215,6 +216,8 @@ function openVaultPinPopup(entry) {
   vaultPinWindow.loadFile(path.join(__dirname, 'src', 'vault-pin.html'));
   vaultPinWindow.on('closed', () => { vaultPinWindow = null; pendingVaultEntry = null; });
 }
+
+deepDiagnostics.init(() => mainWindow);
 
 function enterGamingOverlay() {
   gamingMode.closeBackgroundApps();

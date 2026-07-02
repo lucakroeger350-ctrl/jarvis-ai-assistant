@@ -32,6 +32,9 @@ const VIP_SKILLS = new Set([
   'toggle_network_sniper', // Netzwerk-Sniper
   'research_topic',       // KI-Forschungs-Drohne
   'toggle_ghost_protocol', // Ghost Protocol
+  'deep_diagnostics',     // Tiefendiagnose
+  'cleanup_protocol',     // Protokoll Bereinigung
+  'summarize_clipboard',  // Inhalts-Zusammenfasser
 ]);
 
 let guestSession = null; // { messageCount: 0 } - rein im Arbeitsspeicher, kein Login nötig

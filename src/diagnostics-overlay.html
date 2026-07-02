@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Consolas', 'Share Tech Mono', monospace; color: #39ff6a;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(57,255,106,0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,106,0.12) 1px, transparent 1px);
+    background-size: 38px 38px;
+    animation: gridmove 3s linear infinite;
+  }
+  @keyframes gridmove { from { background-position: 0 0; } to { background-position: 38px 38px; } }
+
+  .scanbar {
+    position: absolute; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, #ff5722, transparent);
+    box-shadow: 0 0 20px 4px rgba(255,87,34,0.6);
+    animation: scandown 2.4s ease-in-out infinite;
+  }
+  @keyframes scandown { 0% { top: 0%; } 100% { top: 100%; } }
+
+  .content { position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .title { font-size: 22px; letter-spacing: 6px; color: #ff5722; text-shadow: 0 0 16px rgba(255,87,34,0.6); }
+  .lines { margin-top: 26px; font-size: 13px; line-height: 2; opacity: 0.9; text-align: left; }
+  .lines div { opacity: 0; animation: fadein 0.4s forwards; }
+  @keyframes fadein { to { opacity: 1; } }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="scanbar"></div>
+  <div class="content">
+    <div class="title">TIEFENDIAGNOSE LÄUFT</div>
+    <div class="lines" id="lines"></div>
+  </div>
+  <script>
+    const steps = [
+      'Initialisiere Sicherheitsscan...',
+      'FBI-SICHERHEITSFREIGABE: STUFE 4 ANGEFORDERT...',
+      'Analysiere Systemkernel...',
+      'FBI-SICHERHEITSFREIGABE: STUFE 4 ERTEILT',
+      'Prüfe Speicherintegrität...',
+      'Prüfe Netzwerkports...',
+      'Optimiere Prozess-Priorisierung...',
+      'Diagnose abgeschlossen.',
+    ];
+    const linesEl = document.getElementById('lines');
+    steps.forEach((text, i) => {
+      const div = document.createElement('div');
+      div.textContent = '> ' + text;
+      div.style.animationDelay = (i * 420) + 'ms';
+      linesEl.appendChild(div);
+    });
+  </script>
+</body>
+</html>

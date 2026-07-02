@@ -212,6 +212,8 @@
 
   window.jarvis.onStealthLog((text) => logLine('system', text));
 
+  window.jarvis.onCleanupLogLine((text) => logLine('system', text));
+
   window.jarvis.onGhostStateChanged((active) => {
     const orbWrap = document.querySelector('.orb-wrap');
     if (orbWrap) orbWrap.classList.toggle('ghost-active', active);

@@ -36,8 +36,11 @@ const typePassword = require('../skills/type-password');
 const networkSniper = require('../skills/network-sniper');
 const researchTopic = require('../skills/research-topic');
 const ghostProtocol = require('../skills/ghost-protocol');
+const deepDiagnostics = require('../skills/deep-diagnostics');
+const cleanupProtocol = require('../skills/cleanup-protocol');
+const summarizeClipboard = require('../skills/summarize-clipboard');
 
-const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol, toggleDesktopIcons, toggleMute, focusMode, toggleCameraGuard, playMusic, stealthMode, typePassword, networkSniper, researchTopic, ghostProtocol];
+const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol, toggleDesktopIcons, toggleMute, focusMode, toggleCameraGuard, playMusic, stealthMode, typePassword, networkSniper, researchTopic, ghostProtocol, deepDiagnostics, cleanupProtocol, summarizeClipboard];
 
 function getToolDefinitions() {
   return ALL_SKILLS.map((s) => ({
