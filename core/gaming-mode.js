@@ -17,6 +17,22 @@ const GAME_PROCESSES = [
   { match: /^overwatch\.exe$/i, name: 'Overwatch' },
   { match: /^rocketleague\.exe$/i, name: 'Rocket League' },
   { match: /^minecraft/i, name: 'Minecraft' },
+  { match: /^robloxplayerbeta\.exe$/i, name: 'Roblox' },
+  { match: /^cod(hq)?\.exe$/i, name: 'Call of Duty' },
+  { match: /modernwarfare|warzone/i, name: 'Call of Duty: Warzone' },
+  { match: /^tslgame\.exe$/i, name: 'PUBG' },
+  { match: /^genshinimpact\.exe$/i, name: 'Genshin Impact' },
+  { match: /^wow(-64|t)?\.exe$/i, name: 'World of Warcraft' },
+  { match: /rainbowsix/i, name: 'Rainbow Six Siege' },
+  { match: /escapefromtarkov/i, name: 'Escape from Tarkov' },
+  { match: /^starcitizen\.exe$/i, name: 'Star Citizen' },
+  { match: /^fifa\d*\.exe$/i, name: 'FIFA' },
+  { match: /^fc(2[4-9]|3\d)\.exe$/i, name: 'EA Sports FC' },
+  { match: /^destiny2\.exe$/i, name: 'Destiny 2' },
+  { match: /^hunt\.exe$/i, name: 'Hunt: Showdown' },
+  { match: /palworld/i, name: 'Palworld' },
+  { match: /^amongus\.exe$/i, name: 'Among Us' },
+  { match: /^terraria\.exe$/i, name: 'Terraria' },
 ];
 
 // Nicht-essenzielle RAM-Fresser, die beim Aktivieren geschlossen werden.

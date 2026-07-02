@@ -158,15 +158,22 @@ function enterGamingOverlay() {
     y: display.workArea.y + 20,
     frame: false,
     transparent: true,
-    alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
+    hasShadow: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload-gaming-overlay.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+  // "screen-saver"-Level statt einfachem alwaysOnTop, damit die Kugel auch über
+  // exklusiven Vollbild-Spielen sichtbar bleibt.
+  gamingOverlayWindow.setAlwaysOnTop(true, 'screen-saver');
+  gamingOverlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // Standardmäßig klickdurchlässig - nur wenn die Maus über der Kugel selbst ist,
+  // wird das Fenster (per IPC von gaming-overlay.html) wieder klickbar.
+  gamingOverlayWindow.setIgnoreMouseEvents(true, { forward: true });
   gamingOverlayWindow.loadFile(path.join(__dirname, 'src', 'gaming-overlay.html'));
   gamingOverlayWindow.on('closed', () => { gamingOverlayWindow = null; });
 }
@@ -289,6 +296,10 @@ ipcMain.handle('jarvis:chat', async (_event, message) => {
 });
 
 ipcMain.handle('gaming:restore', () => { exitGamingOverlay(); return true; });
+ipcMain.handle('gaming:set-ignore-mouse', (_event, ignore) => {
+  if (gamingOverlayWindow) gamingOverlayWindow.setIgnoreMouseEvents(ignore, { forward: true });
+  return true;
+});
 
 ipcMain.handle('settings:get', () => memory.getSettings());
 ipcMain.handle('settings:save', (_event, settings) => {

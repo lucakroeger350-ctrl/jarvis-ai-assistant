@@ -21,9 +21,12 @@
 <body>
   <div class="orb" id="orb" title="Klicken zum Wiederherstellen"></div>
   <script>
-    document.getElementById('orb').addEventListener('click', () => {
-      window.gamingOverlay.restore();
-    });
+    const orb = document.getElementById('orb');
+    orb.addEventListener('click', () => window.gamingOverlay.restore());
+    // Nur über der Kugel klickbar - der Rest des transparenten Fensters lässt
+    // Klicks zum darunterliegenden Spiel durch, damit nichts blockiert wird.
+    orb.addEventListener('mouseenter', () => window.gamingOverlay.setIgnoreMouseEvents(false));
+    orb.addEventListener('mouseleave', () => window.gamingOverlay.setIgnoreMouseEvents(true));
   </script>
 </body>
 </html>
