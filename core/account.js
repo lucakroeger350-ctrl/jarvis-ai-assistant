@@ -26,6 +26,8 @@ const VIP_SKILLS = new Set([
   'start_meeting_recording', // Meeting-Aufnahme (nicht in der Liste explizit genannt, als Premium-Automation eingestuft)
   'summarize_meeting',
   'toggle_camera_guard', // Matrix-Kamera-Schutz
+  'play_music',          // Musik-Schnittstelle & Oszilloskop
+  'activate_stealth_mode', // Boss-Key / Tarnmodus
 ]);
 
 let guestSession = null; // { messageCount: 0 } - rein im Arbeitsspeicher, kein Login nötig

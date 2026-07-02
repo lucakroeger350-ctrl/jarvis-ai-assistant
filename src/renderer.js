@@ -210,6 +210,11 @@
     }, 1000);
   });
 
+  window.jarvis.onStealthLog((text) => logLine('system', text));
+
+  window.addEventListener('error', (e) => window.jarvis.reportError(e.message || String(e.error)));
+  window.addEventListener('unhandledrejection', (e) => window.jarvis.reportError(e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+
   window.jarvis.onReactorFlash(() => {
     if (window.hud) window.hud.setLevel(1);
     setTimeout(() => { if (window.hud) window.hud.setLevel(0); }, 1400);

@@ -21,6 +21,7 @@ const account = require('./core/account');
 const gamingMode = require('./core/gaming-mode');
 const securityGuard = require('./core/security-guard');
 const faceModels = require('./core/face-models');
+const { activateStealthMode } = require('./core/stealth-mode');
 
 let mainWindow;
 let gamingOverlayWindow = null;
@@ -69,6 +70,7 @@ function applyAutoStartSetting(enabled) {
 }
 
 const MACRO_HOTKEY = 'Control+Shift+J';
+const STEALTH_HOTKEY = 'Control+Shift+T';
 const PASTE_SCRIPT_PATH = path.join(os.tmpdir(), 'jarvis-paste.ps1');
 
 function ensurePasteScript() {
@@ -105,6 +107,14 @@ function applyAllHotkeys(settings) {
     globalShortcut.register(MACRO_HOTKEY, triggerMacroPaste);
   } catch (err) {
     console.warn('Speed-Typer-Tastenkombination konnte nicht registriert werden:', err.message);
+  }
+
+  try {
+    globalShortcut.register(STEALTH_HOTKEY, () => {
+      if (account.getAccountState().tier === account.TIERS.VIP) activateStealthMode();
+    });
+  } catch (err) {
+    console.warn('Boss-Key-Tastenkombination konnte nicht registriert werden:', err.message);
   }
 }
 
@@ -148,6 +158,35 @@ function startHardwareWatchdog() {
     }
   }, 60 * 1000);
 }
+
+// Ersetzt Electrons/Windows' hässliche Standard-Fehleranzeige durch ein JARVIS-Popup.
+// WICHTIG (Scope-Klarstellung): Das fängt nur Fehler INNERHALB von JARVIS selbst ab
+// (Haupt- und Renderer-Prozess). Beliebige Windows-Fehlerdialoge fremder Programme
+// abzufangen würde eine Registrierung als System-Debugger (Windows Error Reporting)
+// mit Admin-Rechten erfordern - das ist bewusst nicht Teil dieser Funktion.
+function showSystemErrorPopup(message) {
+  if (account.getAccountState().tier !== account.TIERS.VIP) {
+    console.error(message);
+    return;
+  }
+  const popup = new BrowserWindow({
+    width: 480,
+    height: 320,
+    alwaysOnTop: true,
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+  popup.setMenuBarVisibility(false);
+  popup.loadFile(path.join(__dirname, 'src', 'error-popup.html'), { query: { message: String(message).slice(0, 2000) } });
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  showSystemErrorPopup(err.message || String(err));
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  showSystemErrorPopup(reason && reason.message ? reason.message : String(reason));
+});
 
 function enterGamingOverlay() {
   gamingMode.closeBackgroundApps();
@@ -336,6 +375,8 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
+
+ipcMain.on('app:error', (_event, message) => showSystemErrorPopup(message));
 
 ipcMain.handle('jarvis:chat', async (_event, message) => {
   const gamingResponse = gamingMode.respondToPrompt(message);
