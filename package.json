@@ -40,9 +40,13 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "JARVIS",
+      "multiLanguageInstaller": true,
+      "runAfterFinish": true
     },
     "publish": {
       "provider": "github",
