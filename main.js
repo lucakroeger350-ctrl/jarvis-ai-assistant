@@ -194,6 +194,7 @@ ipcMain.handle('update:download', () => { autoUpdater.downloadUpdate(); return t
 ipcMain.handle('update:install', () => { autoUpdater.quitAndInstall(); return true; });
 ipcMain.handle('app:get-version', () => app.getVersion());
 ipcMain.handle('system:open-sound-settings', () => shell.openExternal('ms-settings:sound'));
+ipcMain.handle('system:open-voice-settings', () => shell.openExternal('ms-settings:speech'));
 
 ipcMain.handle('integrations:get', () => integrations.get());
 ipcMain.handle('integrations:save', (_event, config) => integrations.save(config));

@@ -50,4 +50,5 @@ contextBridge.exposeInMainWorld('jarvis', {
   integrationsSave: (config) => ipcRenderer.invoke('integrations:save', config),
 
   openSoundSettings: () => ipcRenderer.invoke('system:open-sound-settings'),
+  openVoiceSettings: () => ipcRenderer.invoke('system:open-voice-settings'),
 });

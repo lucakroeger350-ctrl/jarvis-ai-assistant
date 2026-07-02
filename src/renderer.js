@@ -1,6 +1,4 @@
 (function () {
-  const statusDot = document.getElementById('statusDot');
-  const statusText = document.getElementById('statusText');
   const reactorLabel = document.getElementById('reactorLabel');
   const consoleLog = document.getElementById('consoleLog');
   const textForm = document.getElementById('textForm');
@@ -20,8 +18,6 @@
   const IDLE_LABEL = 'Mikrofon drücken zum Sprechen';
 
   function setStatus(state, label) {
-    statusDot.className = 'status-dot ' + (state === 'idle' ? '' : state);
-    statusText.textContent = label;
     reactorLabel.textContent = label;
     if (window.hud) window.hud.setState(state);
     if (window.dashboard) {

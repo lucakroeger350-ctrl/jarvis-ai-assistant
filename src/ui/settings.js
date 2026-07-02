@@ -53,6 +53,8 @@
   const hotkeyEl = document.getElementById('hotkey');
   const openSoundSettingsBtn = document.getElementById('openSoundSettingsBtn');
   openSoundSettingsBtn.addEventListener('click', () => window.jarvis.openSoundSettings());
+  const openVoiceSettingsBtn = document.getElementById('openVoiceSettingsBtn');
+  openVoiceSettingsBtn.addEventListener('click', () => window.jarvis.openVoiceSettings());
   const autoStartEl = document.getElementById('autoStart');
   const autoLaunchAppsEl = document.getElementById('autoLaunchApps');
   const permScreenEl = document.getElementById('permScreen');
