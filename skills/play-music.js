@@ -12,7 +12,12 @@ module.exports = {
     required: ['query'],
   },
   async run({ query, service }) {
-    await playMusic(query, service || 'spotify');
-    return { result: `Ich öffne "${query}" auf ${service === 'apple' ? 'Apple Music' : service === 'youtube' ? 'YouTube' : 'Spotify'}, Sir. Das Oszilloskop ist aktiv.` };
+    try {
+      const { playedTrack } = await playMusic(query, service || 'spotify');
+      if (playedTrack) return { result: `Wiedergabe gestartet: ${playedTrack}, Sir. Das Oszilloskop ist aktiv.` };
+      return { result: `Ich öffne "${query}" auf ${service === 'apple' ? 'Apple Music' : service === 'youtube' ? 'YouTube' : 'Spotify'}, Sir. Das Oszilloskop ist aktiv.` };
+    } catch (err) {
+      return { error: err.message };
+    }
   },
 };

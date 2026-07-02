@@ -22,6 +22,7 @@ const gamingMode = require('./core/gaming-mode');
 const securityGuard = require('./core/security-guard');
 const faceModels = require('./core/face-models');
 const { activateStealthMode } = require('./core/stealth-mode');
+const spotifyAuth = require('./core/spotify-auth');
 
 let mainWindow;
 let gamingOverlayWindow = null;
@@ -490,6 +491,12 @@ ipcMain.handle('system:open-voice-settings', () => shell.openExternal('ms-settin
 
 ipcMain.handle('integrations:get', () => integrations.get());
 ipcMain.handle('integrations:save', (_event, config) => integrations.save(config));
+
+ipcMain.handle('spotify:is-connected', () => spotifyAuth.isConnected());
+ipcMain.handle('spotify:connect', async () => {
+  try { await spotifyAuth.authorize(); return { ok: true }; }
+  catch (err) { return { ok: false, error: err.message }; }
+});
 
 ipcMain.handle('profiles:list', () => profiles.listProfiles());
 ipcMain.handle('profiles:get-active', () => profiles.getActiveProfileId());

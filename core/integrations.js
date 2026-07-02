@@ -11,6 +11,9 @@ const DEFAULTS = {
     templateId: '',
     publicKey: '',
   },
+  spotify: {
+    clientId: '',
+  },
 };
 
 function ensureDataDir() {
@@ -22,7 +25,10 @@ function get() {
   if (!fs.existsSync(FILE)) return DEFAULTS;
   try {
     const saved = JSON.parse(fs.readFileSync(FILE, 'utf-8'));
-    return { emailjs: { ...DEFAULTS.emailjs, ...(saved.emailjs || {}) } };
+    return {
+      emailjs: { ...DEFAULTS.emailjs, ...(saved.emailjs || {}) },
+      spotify: { ...DEFAULTS.spotify, ...(saved.spotify || {}) },
+    };
   } catch {
     return DEFAULTS;
   }
@@ -30,7 +36,10 @@ function get() {
 
 function save(config) {
   ensureDataDir();
-  const merged = { emailjs: { ...DEFAULTS.emailjs, ...(config.emailjs || {}) } };
+  const merged = {
+    emailjs: { ...DEFAULTS.emailjs, ...(config.emailjs || {}) },
+    spotify: { ...DEFAULTS.spotify, ...(config.spotify || {}) },
+  };
   fs.writeFileSync(FILE, JSON.stringify(merged, null, 2), 'utf-8');
   return merged;
 }

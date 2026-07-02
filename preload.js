@@ -70,6 +70,9 @@ contextBridge.exposeInMainWorld('jarvis', {
   integrationsGet: () => ipcRenderer.invoke('integrations:get'),
   integrationsSave: (config) => ipcRenderer.invoke('integrations:save', config),
 
+  spotifyIsConnected: () => ipcRenderer.invoke('spotify:is-connected'),
+  spotifyConnect: () => ipcRenderer.invoke('spotify:connect'),
+
   openSoundSettings: () => ipcRenderer.invoke('system:open-sound-settings'),
   openVoiceSettings: () => ipcRenderer.invoke('system:open-voice-settings'),
 
