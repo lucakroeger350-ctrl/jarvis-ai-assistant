@@ -632,3 +632,25 @@ body.pre-auth .auth-overlay { display: flex; }
   margin-top: 34px; font-family: 'Share Tech Mono', monospace; letter-spacing: 2px;
   color: var(--text); font-size: 15px; opacity: 0.85; text-align: center; max-width: 520px;
 }
+
+/* Fokus-Modus: ruhiges, kühles Overlay mit Countdown */
+.focus-overlay {
+  position: fixed; inset: 0; z-index: 9998;
+  background: radial-gradient(circle at 50% 40%, #0a1a2e 0%, #030810 75%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.9s var(--ease);
+}
+.focus-overlay.active { opacity: 1; pointer-events: all; }
+.focus-label {
+  font-family: 'Share Tech Mono', monospace; letter-spacing: 5px; font-size: 13px;
+  color: #4fc3ff; opacity: 0.75; margin-bottom: 18px;
+}
+.focus-countdown {
+  font-family: 'Share Tech Mono', monospace; font-size: 88px; font-weight: 700;
+  color: #cdeeff; text-shadow: 0 0 24px rgba(79,195,255,0.55), 0 0 60px rgba(79,195,255,0.25);
+  letter-spacing: 4px;
+}
+.focus-hint {
+  margin-top: 22px; font-family: 'Share Tech Mono', monospace; font-size: 12px;
+  color: #4fc3ff; opacity: 0.5; letter-spacing: 1.5px;
+}

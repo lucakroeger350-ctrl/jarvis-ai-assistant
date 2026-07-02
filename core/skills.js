@@ -28,8 +28,9 @@ const worldTime = require('../skills/world-time');
 const nightProtocol = require('../skills/night-protocol');
 const toggleDesktopIcons = require('../skills/toggle-desktop-icons');
 const toggleMute = require('../skills/toggle-mute');
+const focusMode = require('../skills/focus-mode');
 
-const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol, toggleDesktopIcons, toggleMute];
+const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol, toggleDesktopIcons, toggleMute, focusMode];
 
 function getToolDefinitions() {
   return ALL_SKILLS.map((s) => ({

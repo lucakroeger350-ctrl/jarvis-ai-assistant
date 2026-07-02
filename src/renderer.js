@@ -156,6 +156,60 @@
     window.jarvisSpeech.speak(text, () => setStatus('idle', IDLE_LABEL));
   });
 
+  function playFocusEndTone() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.9);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.9);
+    } catch { /* ignore */ }
+  }
+
+  let focusTimerId = null;
+
+  window.jarvis.onFocusStart((minutes) => {
+    const overlay = document.getElementById('focusOverlay');
+    const countdownEl = document.getElementById('focusCountdown');
+    if (focusTimerId) clearInterval(focusTimerId);
+
+    const previousTheme = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', 'blue');
+    overlay.classList.add('active');
+
+    let remaining = minutes * 60;
+    const render = () => {
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      countdownEl.textContent = `${m}:${s}`;
+    };
+    render();
+
+    focusTimerId = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(focusTimerId);
+        focusTimerId = null;
+        overlay.classList.remove('active');
+        if (previousTheme) document.documentElement.setAttribute('data-theme', previousTheme);
+        else document.documentElement.removeAttribute('data-theme');
+        playFocusEndTone();
+        const text = 'Sir, der Fokus-Modus ist beendet.';
+        logLine('jarvis', text);
+        setStatus('speaking', 'ANTWORTE');
+        window.jarvisSpeech.speak(text, () => setStatus('idle', IDLE_LABEL));
+        return;
+      }
+      render();
+    }, 1000);
+  });
+
   window.addEventListener('jarvis:visualizer-log', (e) => logLine('system', e.detail));
 
   window.addEventListener('jarvis:meeting-log', (e) => logLine('system', e.detail));

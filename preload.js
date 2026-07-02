@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('jarvis', {
   onVisualizerToggle: (cb) => ipcRenderer.on('visualizer:toggle', (_e, payload) => cb(payload.active)),
   onGlobeFocusCities: (cb) => ipcRenderer.on('globe:focus-cities', (_e, payload) => cb(payload.cities)),
   onNightProtocol: (cb) => ipcRenderer.on('night-protocol:start', (_e, payload) => cb(payload.text)),
+  onFocusStart: (cb) => ipcRenderer.on('focus:start', (_e, payload) => cb(payload.minutes)),
   onShortcutMic: (cb) => ipcRenderer.on('shortcut:mic', () => cb()),
 
   onMeetingStart: (cb) => ipcRenderer.on('meeting:start', () => cb()),
