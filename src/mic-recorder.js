@@ -1,17 +1,26 @@
 (function () {
   const TARGET_SAMPLE_RATE = 16000; // Whisper erwartet 16kHz mono
   const SILENCE_THRESHOLD = 0.012; // RMS-Schwelle, ab der "Sprache" erkannt wird
-  const SILENCE_STOP_MS = 1100; // so lange Stille nach Sprachbeginn beendet die Aufnahme
+  const SILENCE_STOP_MS = 1400; // so lange Stille nach Sprachbeginn beendet die Aufnahme (etwas großzügiger gegen abgeschnittene Sätze)
   const MAX_RECORDING_MS = 15000; // Sicherheitsnetz
   const MAX_WAIT_FOR_SPEECH_MS = 6000; // wenn gar nichts gesagt wird, trotzdem abbrechen
 
+  // Mittelt jeweils einen Block von Samples statt nur jedes n-te herauszupicken
+  // (simpler Anti-Aliasing-Tiefpass) - reines "nearest neighbor"-Downsampling erzeugt
+  // sonst deutliche Aliasing-Artefakte, die Whisper öfter falsch verstehen lässt
+  // (Mikrofone nehmen meist mit 44.1/48kHz auf, Whisper braucht 16kHz).
   function downsample(buffer, inputSampleRate) {
     if (inputSampleRate === TARGET_SAMPLE_RATE) return buffer;
     const ratio = inputSampleRate / TARGET_SAMPLE_RATE;
     const newLength = Math.round(buffer.length / ratio);
     const result = new Float32Array(newLength);
     for (let i = 0; i < newLength; i++) {
-      result[i] = buffer[Math.floor(i * ratio)];
+      const start = Math.floor(i * ratio);
+      const end = Math.min(buffer.length, Math.floor((i + 1) * ratio));
+      let sum = 0;
+      let count = 0;
+      for (let j = start; j < end; j++) { sum += buffer[j]; count++; }
+      result[i] = count > 0 ? sum / count : buffer[start] || 0;
     }
     return result;
   }

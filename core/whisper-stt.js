@@ -9,7 +9,9 @@ async function getTranscriber() {
     transcriberPromise = (async () => {
       const { pipeline, env } = await import('@xenova/transformers');
       env.backends.onnx.logSeverityLevel = 3; // nur Fehler loggen, nicht jede Detail-Warnung
-      return pipeline('automatic-speech-recognition', 'Xenova/whisper-base');
+      // "small" statt "base": deutlich bessere Erkennungsgenauigkeit (v.a. für Deutsch),
+      // nach wie vor komplett lokal/kostenlos, nur etwas größerer Download beim ersten Start.
+      return pipeline('automatic-speech-recognition', 'Xenova/whisper-small');
     })();
   }
   return transcriberPromise;
