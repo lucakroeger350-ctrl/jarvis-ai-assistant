@@ -13,6 +13,7 @@ const profiles = require('./core/profiles');
 const auth = require('./core/auth');
 const { autoUpdater } = require('electron-updater');
 const integrations = require('./core/integrations');
+const piperTts = require('./core/piper-tts');
 
 let mainWindow;
 
@@ -193,6 +194,26 @@ ipcMain.handle('update:check', () => {
 ipcMain.handle('update:download', () => { autoUpdater.downloadUpdate(); return true; });
 ipcMain.handle('update:install', () => { autoUpdater.quitAndInstall(); return true; });
 ipcMain.handle('app:get-version', () => app.getVersion());
+
+ipcMain.handle('tts:piper-installed', () => piperTts.isInstalled());
+ipcMain.handle('tts:ensure-piper', async () => {
+  try {
+    await piperTts.ensurePiperInstalled((msg) => send('tts:piper-progress', { message: msg }));
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle('tts:speak-piper', async (_event, text) => {
+  try {
+    const wavPath = await piperTts.synthesize(text);
+    const base64 = fs.readFileSync(wavPath).toString('base64');
+    fs.unlink(wavPath, () => {});
+    return { audio: base64 };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
 ipcMain.handle('system:open-sound-settings', () => shell.openExternal('ms-settings:sound'));
 ipcMain.handle('system:open-voice-settings', () => shell.openExternal('ms-settings:speech'));
 

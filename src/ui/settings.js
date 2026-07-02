@@ -46,6 +46,10 @@
   const userNameEl = document.getElementById('userName');
   const languageEl = document.getElementById('language');
   const voiceNameEl = document.getElementById('voiceName');
+  const voiceEngineEl = document.getElementById('voiceEngine');
+  const piperHintEl = document.getElementById('piperHint');
+  const piperInstallBtn = document.getElementById('piperInstallBtn');
+  const piperStatusEl = document.getElementById('piperStatus');
   const voiceRateEl = document.getElementById('voiceRate');
   const rateValEl = document.getElementById('rateVal');
   const voicePitchEl = document.getElementById('voicePitch');
@@ -114,6 +118,27 @@
   window.speechSynthesis.onvoiceschanged = populateVoices;
   populateVoices();
 
+  async function refreshPiperStatus() {
+    const installed = await window.jarvis.isPiperInstalled();
+    piperStatusEl.textContent = installed ? '✓ Installiert und einsatzbereit.' : 'Noch nicht installiert.';
+  }
+
+  voiceEngineEl.addEventListener('change', () => {
+    piperHintEl.style.display = voiceEngineEl.value === 'piper' ? 'block' : 'none';
+    if (voiceEngineEl.value === 'piper') refreshPiperStatus();
+  });
+
+  window.jarvis.onPiperProgress((msg) => { piperStatusEl.textContent = msg; });
+
+  piperInstallBtn.addEventListener('click', async () => {
+    piperInstallBtn.disabled = true;
+    piperStatusEl.textContent = 'Installation läuft...';
+    const res = await window.jarvis.ensurePiper();
+    piperInstallBtn.disabled = false;
+    if (res.ok) piperStatusEl.textContent = '✓ Installiert und einsatzbereit.';
+    else piperStatusEl.textContent = 'Fehler: ' + res.error;
+  });
+
   async function loadSettings() {
     const s = await window.jarvis.getSettings();
     providerEl.value = s.provider || 'gemini';
@@ -122,6 +147,9 @@
     personalityEl.value = s.personality || '';
     userNameEl.value = s.userName || '';
     languageEl.value = s.language || 'de-DE';
+    voiceEngineEl.value = s.voiceEngine || 'browser';
+    piperHintEl.style.display = voiceEngineEl.value === 'piper' ? 'block' : 'none';
+    if (voiceEngineEl.value === 'piper') refreshPiperStatus();
     voiceRateEl.value = s.voiceRate || 1.0;
     rateValEl.textContent = s.voiceRate || 1.0;
     voicePitchEl.value = s.voicePitch != null ? s.voicePitch : 1.0;
@@ -148,6 +176,7 @@
       personality: personalityEl.value,
       userName: userNameEl.value.trim(),
       language: languageEl.value,
+      voiceEngine: voiceEngineEl.value,
       voiceName: voiceNameEl.value,
       voiceRate: parseFloat(voiceRateEl.value),
       voicePitch: parseFloat(voicePitchEl.value),

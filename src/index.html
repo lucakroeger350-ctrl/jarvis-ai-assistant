@@ -185,7 +185,18 @@
             <option value="en-US">English</option>
           </select>
         </label>
-        <label>Stimme
+        <label>Stimm-Engine
+          <select id="voiceEngine">
+            <option value="browser">Windows-Systemstimme</option>
+            <option value="piper">Piper "JARVIS"-KI-Stimme (englisch, community-trainiert)</option>
+          </select>
+        </label>
+        <div id="piperHint" style="opacity:0.7; font-size:11px; display:none;">
+          Diese Stimme ist englisch (en_GB) - bei deutschen Antworten klingt sie englisch-akzentuiert.
+          <button type="button" class="save-btn" id="piperInstallBtn" style="width:fit-content; margin-top:8px; display:block;">Jetzt herunterladen &amp; installieren</button>
+          <div id="piperStatus" style="margin-top:6px;"></div>
+        </div>
+        <label>Stimme (nur Windows-Systemstimme)
           <select id="voiceName"></select>
         </label>
         <label>Weitere kostenlose Stimmen installieren

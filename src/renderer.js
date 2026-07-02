@@ -52,6 +52,9 @@
     try {
       const response = await window.jarvis.chat(message);
       logLine('jarvis', response.text);
+      if (response.links && response.links.length) {
+        response.links.forEach((link) => logLine('system', `${link.label}: ${link.url}`));
+      }
       setStatus('speaking', 'ANTWORTE');
       window.jarvisSpeech.speak(response.text, () => {
         setStatus('idle', IDLE_LABEL);

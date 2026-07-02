@@ -51,4 +51,9 @@ contextBridge.exposeInMainWorld('jarvis', {
 
   openSoundSettings: () => ipcRenderer.invoke('system:open-sound-settings'),
   openVoiceSettings: () => ipcRenderer.invoke('system:open-voice-settings'),
+
+  isPiperInstalled: () => ipcRenderer.invoke('tts:piper-installed'),
+  ensurePiper: () => ipcRenderer.invoke('tts:ensure-piper'),
+  speakPiper: (text) => ipcRenderer.invoke('tts:speak-piper', text),
+  onPiperProgress: (cb) => ipcRenderer.on('tts:piper-progress', (_e, payload) => cb(payload.message)),
 });

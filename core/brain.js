@@ -2,6 +2,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const memory = require('./memory');
 const skills = require('./skills');
+const { checkCreatorQuestion } = require('./easter-eggs');
 
 function buildSystemPrompt(settings) {
   const memoryContext = memory.getMemoryContextString();
@@ -22,6 +23,10 @@ function buildSystemPrompt(settings) {
 }
 
 async function chat(userMessage) {
+  // Hart codiertes Easter Egg: umgeht die KI-API komplett, kein API-Aufruf, keine Kosten.
+  const creatorEasterEgg = checkCreatorQuestion(userMessage);
+  if (creatorEasterEgg) return creatorEasterEgg;
+
   const settings = memory.getSettings();
   if (!settings.apiKey) {
     const providerLabel = settings.provider === 'anthropic' ? 'Anthropic' : 'Google Gemini';
