@@ -24,6 +24,15 @@ contextBridge.exposeInMainWorld('jarvis', {
   onNightProtocol: (cb) => ipcRenderer.on('night-protocol:start', (_e, payload) => cb(payload.text)),
   onFocusStart: (cb) => ipcRenderer.on('focus:start', (_e, payload) => cb(payload.minutes)),
   onReactorFlash: (cb) => ipcRenderer.on('reactor:flash', () => cb()),
+
+  getSecurityStatus: () => ipcRenderer.invoke('security:get-status'),
+  setSecurityPin: (pin) => ipcRenderer.invoke('security:set-pin', pin),
+  saveFaceDescriptor: (descriptor) => ipcRenderer.invoke('security:save-descriptor', descriptor),
+  ensureFaceModels: () => ipcRenderer.invoke('security:ensure-models'),
+  onFaceModelsProgress: (cb) => ipcRenderer.on('security:models-progress', (_e, payload) => cb(payload.message)),
+  setSecurityArmed: (armed) => ipcRenderer.invoke('security:set-armed', armed),
+  checkFace: (descriptor) => ipcRenderer.invoke('security:check-face', descriptor),
+  onSecurityArmedChanged: (cb) => ipcRenderer.on('security:armed-changed', (_e, payload) => cb(payload.armed)),
   onShortcutMic: (cb) => ipcRenderer.on('shortcut:mic', () => cb()),
 
   onMeetingStart: (cb) => ipcRenderer.on('meeting:start', () => cb()),

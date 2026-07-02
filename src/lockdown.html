@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%; background: #000;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    font-family: 'Consolas', 'Share Tech Mono', monospace; color: #ff5722; overflow: hidden;
+    user-select: none;
+  }
+  .badge { font-size: 13px; letter-spacing: 6px; opacity: 0.85; margin-bottom: 18px; }
+  .title { font-size: 34px; font-weight: 700; letter-spacing: 3px; color: #ff3b30; text-shadow: 0 0 24px rgba(255,59,48,0.6); }
+  .sub { margin-top: 14px; font-size: 14px; opacity: 0.8; max-width: 640px; text-align: center; line-height: 1.6; }
+  .gdpr { margin-top: 22px; font-size: 11px; opacity: 0.5; max-width: 560px; text-align: center; line-height: 1.5; }
+  .pin-row { margin-top: 32px; display: flex; gap: 10px; align-items: center; }
+  input {
+    background: rgba(255,87,34,0.08); border: 1px solid rgba(255,87,34,0.5); color: #f4f0ec;
+    font-family: inherit; font-size: 20px; letter-spacing: 8px; text-align: center; width: 220px; padding: 10px;
+  }
+  button {
+    background: transparent; border: 1px solid rgba(255,87,34,0.6); color: #ff5722;
+    font-family: inherit; font-size: 14px; padding: 10px 18px; cursor: pointer; letter-spacing: 2px;
+  }
+  button:hover { background: rgba(255,87,34,0.15); }
+  .error { margin-top: 12px; color: #ff3b30; font-size: 13px; min-height: 18px; }
+  .scanline { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, transparent 2px, transparent 4px); pointer-events: none; }
+</style>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="badge">JARVIS SECURITY // MATRIX-KAMERA-SCHUTZ</div>
+  <div class="title">UNAUTORISIERTER ZUGRIFF ERKANNT</div>
+  <div class="sub">Ein unbekanntes Gesicht wurde vor der Kamera erkannt, während der Schutzmodus aktiv war. Alle Systeme wurden gesperrt. Geben Sie Ihre PIN ein, um fortzufahren.</div>
+  <div class="pin-row">
+    <input type="password" id="pinInput" maxlength="8" inputmode="numeric" autofocus />
+    <button id="unlockBtn">ENTSPERREN</button>
+  </div>
+  <div class="error" id="pinError"></div>
+  <div class="gdpr">Hinweis: Die Kameraauswertung erfolgt ausschließlich lokal auf diesem Gerät, es werden keine Bild- oder Videodaten gespeichert oder übertragen - nur ein anonymer mathematischer Gesichts-Vektor, der beim Deaktivieren des Schutzes gelöscht werden kann.</div>
+  <script>
+    const pinInput = document.getElementById('pinInput');
+    const pinError = document.getElementById('pinError');
+    async function tryUnlock() {
+      const res = await window.lockdown.verifyPin(pinInput.value);
+      if (!res.ok) {
+        pinError.textContent = 'Falsche PIN.';
+        pinInput.value = '';
+      }
+    }
+    document.getElementById('unlockBtn').addEventListener('click', tryUnlock);
+    pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+  </script>
+</body>
+</html>

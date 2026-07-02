@@ -19,9 +19,13 @@ const visualizerBridge = require('./core/visualizer-bridge');
 const networkScan = require('./core/network-scan');
 const account = require('./core/account');
 const gamingMode = require('./core/gaming-mode');
+const securityGuard = require('./core/security-guard');
+const faceModels = require('./core/face-models');
 
 let mainWindow;
 let gamingOverlayWindow = null;
+let lockdownWindows = [];
+const LOCKDOWN_OVERRIDE_KEYS = ['Alt+F4', 'Escape', 'Alt+Tab', 'Super'];
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -184,6 +188,51 @@ function exitGamingOverlay() {
   if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
 }
 
+// Sperrt alle Bildschirme mit einem Vollbild-Warnfenster, bis die richtige PIN
+// eingegeben wird. Wichtig: echte Betriebssystem-Kombinationen wie Strg+Alt+Entf
+// kann KEINE Anwendung blockieren (Windows-Sicherheitsdesign) - hier werden nur
+// die häufigsten App-internen Ausweich-Wege (Alt+F4, Esc, Alt+Tab) überschrieben.
+function triggerLockdown() {
+  if (lockdownWindows.length) return; // bereits gesperrt
+  send('app:announce', { text: 'Achtung, Sir: Ein unbekanntes Gesicht wurde erkannt. Ich sperre alle Bildschirme.' });
+
+  LOCKDOWN_OVERRIDE_KEYS.forEach((key) => {
+    try { globalShortcut.register(key, () => {}); } catch { /* ignore */ }
+  });
+
+  const displays = screen.getAllDisplays();
+  lockdownWindows = displays.map((display) => {
+    const win = new BrowserWindow({
+      x: display.bounds.x,
+      y: display.bounds.y,
+      width: display.bounds.width,
+      height: display.bounds.height,
+      frame: false,
+      fullscreen: true,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload-lockdown.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    win.setAlwaysOnTop(true, 'screen-saver');
+    win.loadFile(path.join(__dirname, 'src', 'lockdown.html'));
+    return win;
+  });
+}
+
+function endLockdown() {
+  LOCKDOWN_OVERRIDE_KEYS.forEach((key) => {
+    try { globalShortcut.unregister(key); } catch { /* ignore */ }
+  });
+  lockdownWindows.forEach((w) => { if (!w.isDestroyed()) w.close(); });
+  lockdownWindows = [];
+  applyAllHotkeys(memory.getSettings());
+}
+
 function startGamingWatchdog() {
   gamingMode.startWatcher((gameName) => {
     send('app:announce', { text: `Sir, ich habe ${gameName} erkannt. Möchten Sie, dass ich mich minimiere?` });
@@ -202,6 +251,12 @@ async function runStartupRoutine() {
   applyAutoStartSetting(!!settings.autoStart);
 
   send('app:greeting', { text: buildGreeting(settings.userName) });
+
+  const guardStatus = securityGuard.getStatus();
+  if (guardStatus.enabled && guardStatus.hasFace && guardStatus.hasPin) {
+    securityGuard.setArmed(true);
+    send('security:armed-changed', { armed: true });
+  }
 
   if (settings.autoStart && settings.autoLaunchApps) {
     const apps = settings.autoLaunchApps.split(',').map((a) => a.trim()).filter(Boolean);
@@ -296,6 +351,42 @@ ipcMain.handle('jarvis:chat', async (_event, message) => {
 });
 
 ipcMain.handle('gaming:restore', () => { exitGamingOverlay(); return true; });
+ipcMain.handle('gaming:set-ignore-mouse', (_event, ignore) => {
+  if (gamingOverlayWindow) gamingOverlayWindow.setIgnoreMouseEvents(ignore, { forward: true });
+  return true;
+});
+
+// ---- Matrix-Kamera-Schutz ----
+ipcMain.handle('security:get-status', () => securityGuard.getStatus());
+ipcMain.handle('security:set-pin', (_event, pin) => {
+  try { securityGuard.setPin(pin); return { ok: true }; }
+  catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('security:save-descriptor', (_event, descriptor) => { securityGuard.saveDescriptor(descriptor); return true; });
+ipcMain.handle('security:ensure-models', async () => {
+  try {
+    const dir = await faceModels.ensureModelsDownloaded((msg) => send('security:models-progress', { message: msg }));
+    return { ok: true, dir };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle('security:set-armed', (_event, armedValue) => {
+  securityGuard.setArmed(armedValue);
+  securityGuard.setEnabled(armedValue);
+  send('security:armed-changed', { armed: armedValue });
+  return true;
+});
+ipcMain.handle('security:check-face', (_event, descriptor) => {
+  const match = securityGuard.checkDescriptor(descriptor);
+  if (!match) triggerLockdown();
+  return { match };
+});
+ipcMain.handle('security:verify-pin', (_event, pin) => {
+  const ok = securityGuard.verifyPin(pin);
+  if (ok) endLockdown();
+  return { ok };
+});
 ipcMain.handle('gaming:set-ignore-mouse', (_event, ignore) => {
   if (gamingOverlayWindow) gamingOverlayWindow.setIgnoreMouseEvents(ignore, { forward: true });
   return true;

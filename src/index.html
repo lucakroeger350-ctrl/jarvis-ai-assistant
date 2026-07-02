@@ -163,6 +163,7 @@
         <button class="tab-btn" data-tab="knowledge">Wissen &amp; Lernen</button>
         <button class="tab-btn" data-tab="profiles">Profile</button>
         <button class="tab-btn" data-tab="vip">VIP</button>
+        <button class="tab-btn" data-tab="security">Sicherheit</button>
       </div>
 
       <div class="tab-panel active" id="tab-ai">
@@ -315,6 +316,42 @@
         </div>
       </div>
 
+      <div class="tab-panel" id="tab-security">
+        <div class="knowledge-section">
+          <div class="knowledge-title">Matrix-Kamera-Schutz (VIP)</div>
+          <div style="font-size:12px; opacity:0.7; line-height:1.6;">
+            Die Gesichtserkennung läuft ausschließlich lokal auf diesem Gerät. Es werden keine Bilder oder Videos gespeichert
+            oder übertragen - nur ein mathematischer Gesichts-Vektor, der lokal auf diesem PC bleibt und jederzeit gelöscht
+            werden kann. Nutze diese Funktion nur mit Zustimmung aller Personen, die vor der Kamera erscheinen könnten (DSGVO).
+          </div>
+        </div>
+
+        <div class="knowledge-section" style="margin-top:16px;">
+          <div class="knowledge-title">1. Gesicht registrieren</div>
+          <video id="faceVideo" autoplay muted playsinline style="width:220px; height:165px; background:#000; border:1px solid var(--panel-border); display:block; margin-bottom:8px;"></video>
+          <button class="save-btn" id="startCameraBtn" type="button">Kamera starten</button>
+          <button class="save-btn" id="captureFaceBtn" type="button" style="margin-left:8px;">Gesicht erfassen</button>
+          <div style="font-size:12px; opacity:0.7; margin-top:6px;" id="faceStatus"></div>
+        </div>
+
+        <div class="knowledge-section" style="margin-top:16px;">
+          <div class="knowledge-title">2. PIN festlegen</div>
+          <label>PIN (4-8 Ziffern)
+            <input type="password" id="securityPin" maxlength="8" inputmode="numeric" />
+          </label>
+          <button class="save-btn" id="setPinBtn" type="button" style="margin-top:8px;">PIN speichern</button>
+          <div class="auth-error" id="pinSetError"></div>
+        </div>
+
+        <div class="knowledge-section" style="margin-top:16px;">
+          <div class="knowledge-title">3. Schutz aktivieren</div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+            <input type="checkbox" id="cameraGuardEnabled" style="width:auto;" /> Matrix-Kamera-Schutz aktiv
+          </label>
+          <div style="font-size:12px; opacity:0.7; margin-top:6px;" id="guardStatus"></div>
+        </div>
+      </div>
+
       <div class="settings-footer">
         <button class="save-btn" id="saveSettingsBtn">Speichern</button>
         <div style="text-align:center; font-size:11px; color:var(--text-dim); margin-top:12px;">JARVIS wurde erstellt von <strong style="color:var(--amber);">Veylo40</strong></div>
@@ -345,6 +382,9 @@
   <script src="ui/profiles.js"></script>
   <script src="ui/settings.js"></script>
   <script src="ui/vip.js"></script>
+  <script src="../node_modules/face-api.js/dist/face-api.min.js"></script>
+  <script src="face-guard.js"></script>
+  <script src="ui/security.js"></script>
   <script src="renderer.js"></script>
   <script src="ui/auth.js"></script>
 </body>
