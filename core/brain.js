@@ -193,4 +193,26 @@ async function chatGemini(userMessage, settings) {
   return { text: finalText || 'Verstanden.' };
 }
 
-module.exports = { chat };
+// Einfache Ein-Text-Vervollständigung ohne Tools/Chat-Verlauf - genutzt von Skills,
+// die selbst schon eine KI-Auswertung brauchen (z.B. die Recherche-Drohne).
+async function summarizeText(prompt) {
+  const settings = memory.getSettings();
+  if (!settings.apiKey) throw new Error('Kein API-Schlüssel hinterlegt.');
+
+  if (settings.provider === 'anthropic') {
+    const client = new Anthropic({ apiKey: settings.apiKey });
+    const response = await client.messages.create({
+      model: settings.model,
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    return response.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+  }
+
+  const genAI = new GoogleGenerativeAI(settings.apiKey);
+  const model = genAI.getGenerativeModel({ model: settings.model || 'gemini-2.5-flash' });
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+}
+
+module.exports = { chat, summarizeText };

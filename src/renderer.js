@@ -212,6 +212,12 @@
 
   window.jarvis.onStealthLog((text) => logLine('system', text));
 
+  window.jarvis.onGhostStateChanged((active) => {
+    const orbWrap = document.querySelector('.orb-wrap');
+    if (orbWrap) orbWrap.classList.toggle('ghost-active', active);
+    if (window.hud) window.hud.setLevel(active ? 0.08 : 0);
+  });
+
   window.addEventListener('error', (e) => window.jarvis.reportError(e.message || String(e.error)));
   window.addEventListener('unhandledrejection', (e) => window.jarvis.reportError(e.reason && e.reason.message ? e.reason.message : String(e.reason)));
 

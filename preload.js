@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('jarvis', {
   checkFace: (descriptor) => ipcRenderer.invoke('security:check-face', descriptor),
   onSecurityArmedChanged: (cb) => ipcRenderer.on('security:armed-changed', (_e, payload) => cb(payload.armed)),
   onStealthLog: (cb) => ipcRenderer.on('stealth:log', (_e, payload) => cb(payload.text)),
+  onGhostStateChanged: (cb) => ipcRenderer.on('ghost:state-changed', (_e, payload) => cb(payload.active)),
   reportError: (message) => ipcRenderer.send('app:error', message),
   onShortcutMic: (cb) => ipcRenderer.on('shortcut:mic', () => cb()),
 

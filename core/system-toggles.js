@@ -6,6 +6,7 @@ const { exec } = require('child_process');
 const DESKTOP_ICONS_SCRIPT = path.join(os.tmpdir(), 'jarvis-toggle-desktop-icons.ps1');
 const MUTE_SCRIPT = path.join(os.tmpdir(), 'jarvis-toggle-mute.ps1');
 const SET_MUTE_SCRIPT = path.join(os.tmpdir(), 'jarvis-set-mute.ps1');
+const PAUSE_MEDIA_SCRIPT = path.join(os.tmpdir(), 'jarvis-pause-media.ps1');
 
 function ensureScript(filePath, content) {
   if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, content, 'utf-8');
@@ -63,7 +64,7 @@ public class JarvisAudio {
 // umschaltend) - nutzt die Windows-Core-Audio-COM-Schnittstelle IAudioEndpointVolume.
 function ensureSetMuteScript() {
   ensureScript(SET_MUTE_SCRIPT, `
-param([bool]$Mute)
+param([bool]$Mute, [int]$DataFlow = 0)
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -85,10 +86,10 @@ interface IMMDeviceEnumerator { int f(); int GetDefaultAudioEndpoint(int dataFlo
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
 
 public class JarvisVolume {
-  public static void SetMute(bool mute) {
+  public static void SetMute(bool mute, int dataFlow) {
     var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
     IMMDevice dev;
-    enumerator.GetDefaultAudioEndpoint(0, 1, out dev);
+    enumerator.GetDefaultAudioEndpoint(dataFlow, 1, out dev);
     var epvid = typeof(IAudioEndpointVolume).GUID;
     IAudioEndpointVolume epv;
     dev.Activate(ref epvid, 23, 0, out epv);
@@ -96,18 +97,50 @@ public class JarvisVolume {
   }
 }
 '@
-[JarvisVolume]::SetMute($Mute)
+[JarvisVolume]::SetMute($Mute, $DataFlow)
 `.trim());
 }
 
-async function setMuted(mute) {
+// dataFlow: 0 = eRender (Lautsprecher/Ausgabe), 1 = eCapture (Mikrofon/Eingabe)
+async function setMuted(mute, dataFlow = 0) {
   ensureSetMuteScript();
   return new Promise((resolve, reject) => {
-    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${SET_MUTE_SCRIPT}" -Mute $${mute ? 'true' : 'false'}`, (err) => {
+    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${SET_MUTE_SCRIPT}" -Mute $${mute ? 'true' : 'false'} -DataFlow ${dataFlow}`, (err) => {
       if (err) reject(err);
       else resolve(true);
     });
   });
 }
 
-module.exports = { toggleDesktopIcons, toggleMute, setMuted };
+function setMicMuted(mute) {
+  return setMuted(mute, 1);
+}
+
+// Blockiert den Kamerazugriff über die Windows-Datenschutzeinstellung (Registry) - betrifft
+// moderne/UWP-Apps zuverlässig, bei älteren Desktop-Programmen mit eigenem Treiberzugriff
+// kann das je nach App variieren. Eine echte Hardware-Deaktivierung der Kamera bräuchte
+// Administratorrechte (Disable-PnpDevice) und wurde bewusst nicht genutzt, da sie auch andere,
+// evtl. gerade genutzte Programme hart unterbrechen würde.
+function setCameraAccessBlocked(blocked) {
+  const value = blocked ? 'Deny' : 'Allow';
+  exec(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam" /v Value /t REG_SZ /d "${value}" /f`);
+}
+
+// Simuliert die Medien-Play/Pause-Taste - pausiert i.d.R. Spotify/YouTube/etc., unabhängig
+// davon, welche App gerade Medien abspielt.
+function pauseMedia() {
+  ensureScript(PAUSE_MEDIA_SCRIPT, `
+Add-Type -TypeDefinition '
+using System;
+using System.Runtime.InteropServices;
+public class JarvisMedia {
+  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+}
+'
+[JarvisMedia]::keybd_event(0xB3, 0, 0, [UIntPtr]::Zero)
+[JarvisMedia]::keybd_event(0xB3, 0, 2, [UIntPtr]::Zero)
+`.trim());
+  return runScript(PAUSE_MEDIA_SCRIPT);
+}
+
+module.exports = { toggleDesktopIcons, toggleMute, setMuted, setMicMuted, setCameraAccessBlocked, pauseMedia };

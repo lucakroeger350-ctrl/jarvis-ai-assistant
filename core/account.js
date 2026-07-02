@@ -29,6 +29,9 @@ const VIP_SKILLS = new Set([
   'play_music',          // Musik-Schnittstelle & Oszilloskop
   'activate_stealth_mode', // Boss-Key / Tarnmodus
   'type_password',        // AES-256 Passwort-Tresor
+  'toggle_network_sniper', // Netzwerk-Sniper
+  'research_topic',       // KI-Forschungs-Drohne
+  'toggle_ghost_protocol', // Ghost Protocol
 ]);
 
 let guestSession = null; // { messageCount: 0 } - rein im Arbeitsspeicher, kein Login nötig
