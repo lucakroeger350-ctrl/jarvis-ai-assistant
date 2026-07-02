@@ -164,6 +164,7 @@
         <button class="tab-btn" data-tab="profiles">Profile</button>
         <button class="tab-btn" data-tab="vip">VIP</button>
         <button class="tab-btn" data-tab="security">Sicherheit</button>
+        <button class="tab-btn" data-tab="vault">Tresor</button>
       </div>
 
       <div class="tab-panel active" id="tab-ai">
@@ -363,6 +364,49 @@
         </div>
       </div>
 
+      <div class="tab-panel" id="tab-vault">
+        <div class="knowledge-section">
+          <div class="knowledge-title">Passwort-Tresor (VIP)</div>
+          <div style="font-size:12px; opacity:0.7; line-height:1.6;">
+            Passwörter werden lokal AES-256-verschlüsselt gespeichert. Der Schlüssel wird jedes Mal frisch aus deiner PIN
+            abgeleitet und nie gespeichert - ohne PIN ist der Tresor nicht lesbar. Die PIN wird niemals über den Chat/die KI
+            abgefragt, sondern immer über ein eigenes, sicheres Fenster.
+          </div>
+        </div>
+
+        <div class="knowledge-section" style="margin-top:16px;" id="vaultPinSetupSection">
+          <div class="knowledge-title">Tresor-PIN festlegen</div>
+          <label>PIN (4-8 Ziffern)
+            <input type="password" id="vaultNewPin" maxlength="8" inputmode="numeric" />
+          </label>
+          <button class="save-btn" id="vaultSetPinBtn" type="button" style="margin-top:8px;">PIN festlegen</button>
+          <div class="auth-error" id="vaultPinError"></div>
+        </div>
+
+        <div class="knowledge-section" style="margin-top:16px;">
+          <div class="knowledge-title">Neuer Eintrag</div>
+          <label>Bezeichnung (z.B. "Amazon")
+            <input type="text" id="vaultLabel" />
+          </label>
+          <label>Benutzername/E-Mail
+            <input type="text" id="vaultUsername" />
+          </label>
+          <label>Passwort
+            <input type="password" id="vaultPassword" />
+          </label>
+          <label>Deine Tresor-PIN (zum Verschlüsseln)
+            <input type="password" id="vaultAddPin" maxlength="8" inputmode="numeric" />
+          </label>
+          <button class="save-btn" id="vaultAddBtn" type="button" style="margin-top:8px;">Eintrag speichern</button>
+          <div class="auth-error" id="vaultAddError"></div>
+        </div>
+
+        <div class="knowledge-section" style="margin-top:16px;">
+          <div class="knowledge-title">Gespeicherte Einträge</div>
+          <div id="vaultEntryList"></div>
+        </div>
+      </div>
+
       <div class="settings-footer">
         <button class="save-btn" id="saveSettingsBtn">Speichern</button>
         <div style="text-align:center; font-size:11px; color:var(--text-dim); margin-top:12px;">JARVIS wurde erstellt von <strong style="color:var(--amber);">Veylo40</strong></div>
@@ -396,6 +440,7 @@
   <script src="../node_modules/face-api.js/dist/face-api.min.js"></script>
   <script src="face-guard.js"></script>
   <script src="ui/security.js"></script>
+  <script src="ui/vault.js"></script>
   <script src="renderer.js"></script>
   <script src="ui/auth.js"></script>
 </body>

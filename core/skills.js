@@ -32,8 +32,9 @@ const focusMode = require('../skills/focus-mode');
 const toggleCameraGuard = require('../skills/toggle-camera-guard');
 const playMusic = require('../skills/play-music');
 const stealthMode = require('../skills/stealth-mode');
+const typePassword = require('../skills/type-password');
 
-const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol, toggleDesktopIcons, toggleMute, focusMode, toggleCameraGuard, playMusic, stealthMode];
+const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile, dailyBriefing, systemCheck, speedtest, networkScan, musicVisualizer, takeScreenshot, rockPaperScissors, worldTime, nightProtocol, toggleDesktopIcons, toggleMute, focusMode, toggleCameraGuard, playMusic, stealthMode, typePassword];
 
 function getToolDefinitions() {
   return ALL_SKILLS.map((s) => ({

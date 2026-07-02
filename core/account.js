@@ -28,6 +28,7 @@ const VIP_SKILLS = new Set([
   'toggle_camera_guard', // Matrix-Kamera-Schutz
   'play_music',          // Musik-Schnittstelle & Oszilloskop
   'activate_stealth_mode', // Boss-Key / Tarnmodus
+  'type_password',        // AES-256 Passwort-Tresor
 ]);
 
 let guestSession = null; // { messageCount: 0 } - rein im Arbeitsspeicher, kein Login nötig

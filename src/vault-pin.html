@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%; background: #0a0908;
+    font-family: 'Consolas', 'Share Tech Mono', monospace; color: #f4f0ec;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-sizing: border-box; padding: 18px;
+  }
+  .title { color: #ff5722; font-size: 12px; letter-spacing: 2px; margin-bottom: 10px; }
+  .label { font-size: 13px; opacity: 0.85; margin-bottom: 14px; text-align: center; }
+  input {
+    background: rgba(255,87,34,0.08); border: 1px solid rgba(255,87,34,0.5); color: #f4f0ec;
+    font-family: inherit; font-size: 18px; letter-spacing: 6px; text-align: center; width: 160px; padding: 8px;
+  }
+  .row { display: flex; gap: 8px; margin-top: 14px; }
+  button {
+    background: transparent; border: 1px solid rgba(255,87,34,0.5); color: #ff5722;
+    font-family: inherit; font-size: 12px; padding: 8px 14px; cursor: pointer;
+  }
+  button:hover { background: rgba(255,87,34,0.15); }
+  .error { margin-top: 10px; color: #ff3b30; font-size: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+  <div class="title">JARVIS PASSWORT-TRESOR</div>
+  <div class="label" id="labelEl">Lade...</div>
+  <input type="password" id="pinInput" maxlength="8" inputmode="numeric" autofocus />
+  <div class="row">
+    <button id="submitBtn">Entsperren &amp; eintippen</button>
+    <button id="cancelBtn">Abbrechen</button>
+  </div>
+  <div class="error" id="errorEl"></div>
+  <script>
+    const labelEl = document.getElementById('labelEl');
+    const pinInput = document.getElementById('pinInput');
+    const errorEl = document.getElementById('errorEl');
+
+    (async () => {
+      const label = await window.vaultPin.getLabel();
+      labelEl.textContent = label ? `Passwort für "${label}"` : 'Kein Eintrag gefunden.';
+    })();
+
+    async function submit() {
+      const res = await window.vaultPin.submit(pinInput.value);
+      if (!res.ok) {
+        errorEl.textContent = res.error;
+        pinInput.value = '';
+      }
+    }
+    document.getElementById('submitBtn').addEventListener('click', submit);
+    document.getElementById('cancelBtn').addEventListener('click', () => window.vaultPin.cancel());
+    pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  </script>
+</body>
+</html>

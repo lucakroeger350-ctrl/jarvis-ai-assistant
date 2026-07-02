@@ -34,6 +34,7 @@
       "preload.js",
       "preload-gaming-overlay.js",
       "preload-lockdown.js",
+      "preload-vault-pin.js",
       "core/**/*",
       "skills/**/*",
       "native/**/*",

@@ -73,6 +73,12 @@ contextBridge.exposeInMainWorld('jarvis', {
   spotifyIsConnected: () => ipcRenderer.invoke('spotify:is-connected'),
   spotifyConnect: () => ipcRenderer.invoke('spotify:connect'),
 
+  vaultHasPin: () => ipcRenderer.invoke('vault:has-pin'),
+  vaultSetPin: (pin) => ipcRenderer.invoke('vault:set-pin', pin),
+  vaultList: () => ipcRenderer.invoke('vault:list'),
+  vaultAddEntry: (data) => ipcRenderer.invoke('vault:add-entry', data),
+  vaultDeleteEntry: (data) => ipcRenderer.invoke('vault:delete-entry', data),
+
   openSoundSettings: () => ipcRenderer.invoke('system:open-sound-settings'),
   openVoiceSettings: () => ipcRenderer.invoke('system:open-voice-settings'),
 

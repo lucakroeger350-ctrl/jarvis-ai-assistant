@@ -23,6 +23,9 @@ const securityGuard = require('./core/security-guard');
 const faceModels = require('./core/face-models');
 const { activateStealthMode } = require('./core/stealth-mode');
 const spotifyAuth = require('./core/spotify-auth');
+const passwordVault = require('./core/password-vault');
+const autoType = require('./core/auto-type');
+const vaultBridge = require('./core/vault-bridge');
 
 let mainWindow;
 let gamingOverlayWindow = null;
@@ -189,6 +192,30 @@ process.on('unhandledRejection', (reason) => {
   showSystemErrorPopup(reason && reason.message ? reason.message : String(reason));
 });
 
+// Passwort-Tresor: eigenständiges Popup-Fenster für die PIN-Eingabe, damit die PIN
+// NIEMALS über den Chat/die Sprachpipeline läuft (und somit nie an die KI-API geht).
+let vaultPinWindow = null;
+let pendingVaultEntry = null;
+
+function openVaultPinPopup(entry) {
+  pendingVaultEntry = entry;
+  vaultPinWindow = new BrowserWindow({
+    width: 320,
+    height: 230,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload-vault-pin.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  vaultPinWindow.setMenuBarVisibility(false);
+  vaultPinWindow.loadFile(path.join(__dirname, 'src', 'vault-pin.html'));
+  vaultPinWindow.on('closed', () => { vaultPinWindow = null; pendingVaultEntry = null; });
+}
+
 function enterGamingOverlay() {
   gamingMode.closeBackgroundApps();
   gamingMode.setOverlayActive(true);
@@ -351,6 +378,7 @@ app.whenReady().then(() => {
   createWindow();
   meeting.init(send);
   visualizerBridge.init(send);
+  vaultBridge.init(openVaultPinPopup);
 
   const settings = memory.getSettings();
   applyAllHotkeys(settings);
@@ -491,6 +519,45 @@ ipcMain.handle('system:open-voice-settings', () => shell.openExternal('ms-settin
 
 ipcMain.handle('integrations:get', () => integrations.get());
 ipcMain.handle('integrations:save', (_event, config) => integrations.save(config));
+
+// ---- Passwort-Tresor ----
+ipcMain.handle('vault:has-pin', () => passwordVault.hasPin());
+ipcMain.handle('vault:set-pin', (_event, pin) => {
+  try { passwordVault.setPin(pin); return { ok: true }; }
+  catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('vault:list', () => passwordVault.listEntries());
+ipcMain.handle('vault:add-entry', (_event, { pin, label, username, password }) => {
+  try { return { ok: true, entry: passwordVault.addEntry(pin, label, username, password) }; }
+  catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('vault:delete-entry', (_event, { pin, id }) => {
+  try { passwordVault.deleteEntry(pin, id); return { ok: true }; }
+  catch (err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('vault:open-pin-popup', (_event, label) => {
+  const entry = passwordVault.findByLabel(label);
+  openVaultPinPopup(entry || { label, notFound: true });
+  return true;
+});
+ipcMain.handle('vault:get-pending-label', () => (pendingVaultEntry ? pendingVaultEntry.label : null));
+ipcMain.handle('vault:submit-pin', (_event, pin) => {
+  if (!pendingVaultEntry || pendingVaultEntry.notFound) {
+    if (vaultPinWindow) vaultPinWindow.close();
+    return { ok: false, error: 'Kein passender Eintrag gefunden.' };
+  }
+  try {
+    const password = passwordVault.decryptPassword(pin, pendingVaultEntry.id);
+    const entryLabel = pendingVaultEntry.label;
+    if (vaultPinWindow) vaultPinWindow.close();
+    setTimeout(() => autoType.typeText(password), 300);
+    send('app:announce', { text: `Passwort für "${entryLabel}" eingetippt, Sir.` });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle('vault:cancel-pin', () => { if (vaultPinWindow) vaultPinWindow.close(); return true; });
 
 ipcMain.handle('spotify:is-connected', () => spotifyAuth.isConnected());
 ipcMain.handle('spotify:connect', async () => {
