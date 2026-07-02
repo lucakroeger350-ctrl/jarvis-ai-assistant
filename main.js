@@ -46,10 +46,13 @@ function send(channel, payload) {
 
 function applyAutoStartSetting(enabled) {
   try {
+    // In der installierten (gepackten) Version braucht die .exe keinen Pfad-Parameter -
+    // der wurde bisher fälschlich immer mitgegeben, wodurch der Autostart-Eintrag
+    // fehlerhaft war und Windows JARVIS beim Login nicht korrekt gestartet hat.
     app.setLoginItemSettings({
       openAtLogin: enabled,
       path: process.execPath,
-      args: enabled ? [path.join(__dirname)] : [],
+      args: enabled && !app.isPackaged ? [path.join(__dirname)] : [],
     });
   } catch (err) {
     console.warn('Autostart konnte nicht gesetzt werden:', err.message);
