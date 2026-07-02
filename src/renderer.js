@@ -141,6 +141,13 @@
     logLine('alert', `[SYSTEM] CPU ${data.cpuLoad}% / RAM ${data.ramPercent}% - kritische Auslastung`);
   });
 
+  window.jarvis.onVisualizerToggle((active) => {
+    if (active) window.musicVisualizer.start();
+    else window.musicVisualizer.stop();
+  });
+
+  window.addEventListener('jarvis:visualizer-log', (e) => logLine('system', e.detail));
+
   window.addEventListener('jarvis:meeting-log', (e) => logLine('system', e.detail));
 
   async function init() {

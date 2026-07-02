@@ -15,6 +15,7 @@ const { autoUpdater } = require('electron-updater');
 const integrations = require('./core/integrations');
 const piperTts = require('./core/piper-tts');
 const { checkSystem } = require('./core/hardware-monitor');
+const visualizerBridge = require('./core/visualizer-bridge');
 
 let mainWindow;
 
@@ -198,6 +199,7 @@ app.whenReady().then(() => {
 
   createWindow();
   meeting.init(send);
+  visualizerBridge.init(send);
 
   const settings = memory.getSettings();
   applyAllHotkeys(settings);

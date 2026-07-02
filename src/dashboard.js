@@ -176,18 +176,33 @@
   const POINTS = 48;
   const waveTargets = new Array(POINTS).fill(0.1);
   const waveCurrent = new Array(POINTS).fill(0.1);
+  const waveTargets2 = new Array(POINTS).fill(0.1);
+  const waveCurrent2 = new Array(POINTS).fill(0.1);
 
   setInterval(() => {
-    waveTargets.push(Math.max(0.05, targetLevel() * (0.7 + Math.random() * 0.3)));
+    const musicActive = window.musicVisualizer && window.musicVisualizer.isActive();
+    if (musicActive) {
+      const levels = window.musicVisualizer.getLevels();
+      if (levels) {
+        waveTargets.push(Math.max(0.05, levels.bass));
+        waveTargets2.push(Math.max(0.05, levels.treble));
+      }
+    } else {
+      const v = Math.max(0.05, targetLevel() * (0.7 + Math.random() * 0.3));
+      waveTargets.push(v);
+      waveTargets2.push(v);
+    }
     waveTargets.shift();
-  }, 500);
+    waveTargets2.shift();
+  }, 120);
 
   function drawWave() {
     const { ctx, w, h } = waveSetup;
     ctx.clearRect(0, 0, w, h);
 
     for (let i = 0; i < POINTS; i++) {
-      waveCurrent[i] += (waveTargets[i] - waveCurrent[i]) * 0.035;
+      waveCurrent[i] += (waveTargets[i] - waveCurrent[i]) * 0.15;
+      waveCurrent2[i] += (waveTargets2[i] - waveCurrent2[i]) * 0.15;
     }
 
     const step = w / (POINTS - 1);
@@ -204,7 +219,7 @@
     ctx.shadowBlur = 7;
     ctx.stroke();
 
-    smoothLine(ctx, waveCurrent, toXY2);
+    smoothLine(ctx, waveCurrent2, toXY2);
     ctx.strokeStyle = 'rgba(77,255,154,0.6)';
     ctx.lineWidth = 1.5;
     ctx.shadowBlur = 0;

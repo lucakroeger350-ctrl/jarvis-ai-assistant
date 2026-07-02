@@ -23,13 +23,20 @@
     { name: 'LONDON', lat: 51, lon: 0 },
   ];
 
-  coordList.innerHTML = LOCATIONS.map((l) => `
-    <div class="coord-row">
-      <span>${l.name}</span>
-      <span>${l.lat.toFixed(1)}°N ${l.lon.toFixed(1)}°</span>
-      <span class="status-active">ACTIVE</span>
-    </div>
-  `).join('');
+  function renderCoordList(times) {
+    coordList.innerHTML = LOCATIONS.map((l) => {
+      const match = times && times.find((t) => t.name.toUpperCase() === l.name || l.name.includes(t.name.toUpperCase()));
+      const statusText = match ? `${match.time} UHR` : 'ACTIVE';
+      return `
+        <div class="coord-row">
+          <span>${l.name}</span>
+          <span>${l.lat.toFixed(1)}°N ${l.lon.toFixed(1)}°</span>
+          <span class="status-active">${statusText}</span>
+        </div>
+      `;
+    }).join('');
+  }
+  renderCoordList();
 
   // Punkte auf der Kugel projizieren (einfache Orthogonalprojektion, Rotation um Y-Achse)
   function project(lat, lon, rotY) {
@@ -45,9 +52,49 @@
   const gridLons = Array.from({ length: 12 }, (_, i) => i * 30 - 180);
 
   let t = 0;
+  let autoRotate = true;
+  let focusQueue = [];
+  let focusIndex = 0;
+  let focusHoldUntil = 0;
+
+  function startFocusTour(cities) {
+    focusQueue = cities;
+    focusIndex = 0;
+    autoRotate = false;
+    focusHoldUntil = 0;
+    renderCoordList(cities);
+  }
+
+  if (window.jarvis && window.jarvis.onGlobeFocusCities) {
+    window.jarvis.onGlobeFocusCities((cities) => startFocusTour(cities));
+  }
+
+  function updateRotation() {
+    if (autoRotate) {
+      t += 0.0035;
+      return;
+    }
+    if (focusIndex >= focusQueue.length) {
+      autoRotate = true;
+      return;
+    }
+    const target = focusQueue[focusIndex];
+    const targetRot = -((target.lon / 180) * Math.PI);
+    const now = Date.now();
+
+    if (Math.abs(((t - targetRot + Math.PI) % (Math.PI * 2)) - Math.PI) < 0.02) {
+      if (!focusHoldUntil) focusHoldUntil = now + 2200;
+      if (now >= focusHoldUntil) {
+        focusIndex += 1;
+        focusHoldUntil = 0;
+      }
+      return;
+    }
+    t += (targetRot - t) * 0.04;
+  }
 
   function draw() {
-    t += 0.0035;
+    updateRotation();
     ctx.clearRect(0, 0, size, size);
 
     // Kugel-Silhouette
@@ -105,13 +152,14 @@
         ctx.stroke();
       }
     }
-    projected.forEach(({ p }) => {
+    projected.forEach(({ p, name }) => {
       if (!p.visible) return;
+      const isFocused = !autoRotate && focusQueue[focusIndex] && name.includes(focusQueue[focusIndex].name.toUpperCase());
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffcc33';
-      ctx.shadowColor = '#ffcc33';
-      ctx.shadowBlur = 6;
+      ctx.arc(p.x, p.y, isFocused ? 4.5 : 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = isFocused ? '#ff5722' : '#ffcc33';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = isFocused ? 12 : 6;
       ctx.fill();
       ctx.shadowBlur = 0;
     });
