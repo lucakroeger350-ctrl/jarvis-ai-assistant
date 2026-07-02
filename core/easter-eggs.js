@@ -22,4 +22,13 @@ function checkCreatorQuestion(message) {
   return { text: CREATOR_RESPONSE, links: CREATOR_LINKS };
 }
 
-module.exports = { checkCreatorQuestion };
+const IRON_MAN_PATTERNS = [
+  /jarvis,?\s*bist du da/i,
+  /jarvis,?\s*are you there/i,
+];
+
+function checkIronManQuestion(message) {
+  return IRON_MAN_PATTERNS.some((re) => re.test(message));
+}
+
+module.exports = { checkCreatorQuestion, checkIronManQuestion };

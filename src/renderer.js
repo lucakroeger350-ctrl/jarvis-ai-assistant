@@ -210,6 +210,11 @@
     }, 1000);
   });
 
+  window.jarvis.onReactorFlash(() => {
+    if (window.hud) window.hud.setLevel(1);
+    setTimeout(() => { if (window.hud) window.hud.setLevel(0); }, 1400);
+  });
+
   window.addEventListener('jarvis:visualizer-log', (e) => logLine('system', e.detail));
 
   window.addEventListener('jarvis:meeting-log', (e) => logLine('system', e.detail));

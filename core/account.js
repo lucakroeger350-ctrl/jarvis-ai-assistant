@@ -15,25 +15,16 @@ const FREE_MESSAGE_LIMIT = 500;
 const FREE_STARTING_COINS = 100;
 const COIN_COST_PER_SKILL = 10;
 
-// Module, die über die reine Konversation hinausgehen ("Premium-Komfort/Automation").
+// Module, die laut der offiziellen Free/VIP-Feature-Liste hinter der VIP-Stufe stehen.
 // Für Gäste komplett gesperrt, für kostenlose Konten kosten sie Coins, für VIP unbegrenzt.
+// Alles, was NICHT hier drin ist, ist für registrierte kostenlose Nutzer frei nutzbar.
 const VIP_SKILLS = new Set([
-  'night_protocol',
-  'focus_mode',
-  'toggle_desktop_icons',
-  'toggle_mute',
-  'toggle_music_visualizer',
-  'take_screenshot',
-  'rock_paper_scissors',
-  'world_time',
-  'daily_briefing',
-  'system_check',
-  'speedtest',
-  'scan_network',
-  'meeting_start',
-  'meeting_summarize',
-  'clean_downloads',
-  'search_file',
+  'night_protocol',       // Night Protocol (filmreifer Shutdown)
+  'scan_network',         // WLAN-Wächter (Subnetz-Scanner)
+  'world_time',           // Weltzeit-Globus-Widget
+  'toggle_music_visualizer', // Musik-Schnittstelle & Oszilloskop
+  'start_meeting_recording', // Meeting-Aufnahme (nicht in der Liste explizit genannt, als Premium-Automation eingestuft)
+  'summarize_meeting',
 ]);
 
 let guestSession = null; // { messageCount: 0 } - rein im Arbeitsspeicher, kein Login nötig

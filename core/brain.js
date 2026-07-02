@@ -3,7 +3,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const memory = require('./memory');
 const skills = require('./skills');
 const account = require('./account');
-const { checkCreatorQuestion } = require('./easter-eggs');
+const visualizerBridge = require('./visualizer-bridge');
+const { checkCreatorQuestion, checkIronManQuestion } = require('./easter-eggs');
 
 function buildSystemPrompt(settings) {
   const memoryContext = memory.getMemoryContextString();
@@ -36,6 +37,12 @@ async function chat(userMessage) {
   // Hart codiertes Easter Egg: umgeht die KI-API komplett, kein API-Aufruf, keine Kosten.
   const creatorEasterEgg = checkCreatorQuestion(userMessage);
   if (creatorEasterEgg) return creatorEasterEgg;
+
+  // Iron-Man-Easter-Egg ist ein VIP-Bonus - für Gast/kostenlos fällt es durch zur normalen Antwort.
+  if (checkIronManQuestion(userMessage) && account.getAccountState().tier === account.TIERS.VIP) {
+    visualizerBridge.send('reactor:flash', {});
+    return { text: 'For you sir, always.' };
+  }
 
   const messageCheck = account.canSendMessage();
   if (!messageCheck.allowed) return { text: messageCheck.reason };
