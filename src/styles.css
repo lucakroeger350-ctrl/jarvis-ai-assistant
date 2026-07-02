@@ -389,6 +389,8 @@ body.pre-auth .app-shell { margin-left: 0; }
 .log-line.jarvis .tag { background: rgba(255,87,34,0.15); color: var(--amber); }
 .log-line.system { color: var(--text-dim); font-style: italic; }
 .log-line.system .tag { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+.log-line.alert { color: var(--red); font-weight: 600; }
+.log-line.alert .tag { background: rgba(255,59,48,0.25); color: var(--red); }
 
 .console-input {
   display: flex;

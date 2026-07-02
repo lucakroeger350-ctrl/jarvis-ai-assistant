@@ -29,7 +29,7 @@
   function logLine(who, text) {
     const div = document.createElement('div');
     div.className = 'log-line ' + who;
-    const tagText = who === 'user' ? 'DU' : who === 'jarvis' ? 'JARVIS' : 'SYSTEM';
+    const tagText = who === 'user' ? 'DU' : who === 'jarvis' ? 'JARVIS' : who === 'alert' ? 'WARNUNG' : 'SYSTEM';
     div.innerHTML = `<span class="tag">${tagText}</span>${escapeHtml(text)}`;
     consoleLog.appendChild(div);
     consoleLog.scrollTop = consoleLog.scrollHeight;
@@ -135,6 +135,10 @@
     logLine('jarvis', text);
     setStatus('speaking', 'ANTWORTE');
     window.jarvisSpeech.speak(text, () => setStatus('idle', IDLE_LABEL));
+  });
+
+  window.jarvis.onHardwareAlert((data) => {
+    logLine('alert', `[SYSTEM] CPU ${data.cpuLoad}% / RAM ${data.ramPercent}% - kritische Auslastung`);
   });
 
   window.addEventListener('jarvis:meeting-log', (e) => logLine('system', e.detail));

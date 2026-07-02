@@ -14,6 +14,7 @@ const auth = require('./core/auth');
 const { autoUpdater } = require('electron-updater');
 const integrations = require('./core/integrations');
 const piperTts = require('./core/piper-tts');
+const { checkSystem } = require('./core/hardware-monitor');
 
 let mainWindow;
 
@@ -121,6 +122,24 @@ function startEyeCareTimer() {
   }, 2 * 60 * 60 * 1000);
 }
 
+function startHardwareWatchdog() {
+  let alreadyWarned = false;
+  setInterval(async () => {
+    try {
+      const status = await checkSystem();
+      if (status.critical && !alreadyWarned) {
+        alreadyWarned = true;
+        send('app:announce', { text: `Warnung, Sir: Die Systemauslastung ist kritisch. CPU bei ${status.cpuLoad} Prozent, Arbeitsspeicher bei ${status.ramPercent} Prozent.` });
+        send('app:hardware-alert', { cpuLoad: status.cpuLoad, ramPercent: status.ramPercent });
+      } else if (!status.critical) {
+        alreadyWarned = false;
+      }
+    } catch {
+      // stille Fehlbehandlung - Hardware-Monitoring ist nicht kritisch
+    }
+  }, 60 * 1000);
+}
+
 async function runStartupRoutine() {
   const settings = memory.getSettings();
   applyAutoStartSetting(!!settings.autoStart);
@@ -184,6 +203,7 @@ app.whenReady().then(() => {
   applyAllHotkeys(settings);
   startReminderTimer();
   startEyeCareTimer();
+  startHardwareWatchdog();
 
   if (app.isPackaged) {
     setTimeout(checkForUpdates, 5000); // stiller Check kurz nach dem Start
