@@ -55,6 +55,7 @@
   const voicePitchEl = document.getElementById('voicePitch');
   const pitchValEl = document.getElementById('pitchVal');
   const hotkeyEl = document.getElementById('hotkey');
+  const macroTextEl = document.getElementById('macroText');
   const openSoundSettingsBtn = document.getElementById('openSoundSettingsBtn');
   openSoundSettingsBtn.addEventListener('click', () => window.jarvis.openSoundSettings());
   const openVoiceSettingsBtn = document.getElementById('openVoiceSettingsBtn');
@@ -155,6 +156,7 @@
     voicePitchEl.value = s.voicePitch != null ? s.voicePitch : 1.0;
     pitchValEl.textContent = s.voicePitch != null ? s.voicePitch : 1.0;
     hotkeyEl.value = s.hotkey || 'Alt+J';
+    macroTextEl.value = s.macroText || '';
     autoStartEl.checked = !!s.autoStart;
     autoLaunchAppsEl.value = s.autoLaunchApps || '';
     permScreenEl.checked = !!s.permissions?.screen;
@@ -181,6 +183,7 @@
       voiceRate: parseFloat(voiceRateEl.value),
       voicePitch: parseFloat(voicePitchEl.value),
       hotkey: hotkeyEl.value.trim(),
+      macroText: macroTextEl.value,
       autoStart: autoStartEl.checked,
       autoLaunchApps: autoLaunchAppsEl.value.trim(),
       accentTheme: selectedTheme,

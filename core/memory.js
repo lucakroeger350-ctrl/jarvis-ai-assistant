@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
   voicePitch: 0.9,
   userName: '',
   hotkey: 'Alt+J',
+  macroText: '',
   autoStart: false,
   autoLaunchApps: 'spotify, discord',
   accentTheme: 'orange',

@@ -28,7 +28,9 @@ function downloadFile(url, destPath, onProgress) {
     const doRequest = (requestUrl, redirectsLeft) => {
       https.get(requestUrl, (res) => {
         if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location && redirectsLeft > 0) {
-          doRequest(res.headers.location, redirectsLeft - 1);
+          // Location kann relativ sein (z.B. Hugging Face) - gegen die aktuelle URL auflösen.
+          const nextUrl = new URL(res.headers.location, requestUrl).href;
+          doRequest(nextUrl, redirectsLeft - 1);
           return;
         }
         if (res.statusCode !== 200) {

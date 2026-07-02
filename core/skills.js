@@ -15,8 +15,10 @@ const shutdownPc = require('../skills/system-shutdown');
 const cancelShutdown = require('../skills/system-cancel-shutdown');
 const closeApp = require('../skills/close-app');
 const minimizeApp = require('../skills/minimize-app');
+const cleanDownloads = require('../skills/clean-downloads');
+const searchFile = require('../skills/search-file');
 
-const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown];
+const ALL_SKILLS = [openApp, closeApp, minimizeApp, systemInfo, webSearch, webFetch, files, screenLook, rememberFact, learnSkill, calendarAdd, calendarList, calendarDelete, meetingStart, meetingSummarize, shutdownPc, cancelShutdown, cleanDownloads, searchFile];
 
 function getToolDefinitions() {
   return ALL_SKILLS.map((s) => ({

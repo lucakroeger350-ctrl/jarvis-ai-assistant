@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, globalShortcut, desktopCapturer, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, session, globalShortcut, desktopCapturer, shell, clipboard } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -58,16 +58,43 @@ function applyAutoStartSetting(enabled) {
   }
 }
 
-function applyHotkey(hotkey) {
+const MACRO_HOTKEY = 'Control+Shift+J';
+const PASTE_SCRIPT_PATH = path.join(os.tmpdir(), 'jarvis-paste.ps1');
+
+function ensurePasteScript() {
+  if (fs.existsSync(PASTE_SCRIPT_PATH)) return;
+  const script = `Add-Type -AssemblyName System.Windows.Forms\nStart-Sleep -Milliseconds 120\n[System.Windows.Forms.SendKeys]::SendWait("^v")\n`;
+  fs.writeFileSync(PASTE_SCRIPT_PATH, script, 'utf-8');
+}
+
+function triggerMacroPaste() {
+  const settings = memory.getSettings();
+  if (!settings.macroText) return;
+  clipboard.writeText(settings.macroText);
+  ensurePasteScript();
+  require('child_process').exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${PASTE_SCRIPT_PATH}"`);
+}
+
+// Registriert alle globalen Tastenkombinationen gemeinsam neu (Mikrofon + Speed-Typer-Makro),
+// da globalShortcut.unregisterAll() sonst auch die jeweils andere Kombination löschen würde.
+function applyAllHotkeys(settings) {
   globalShortcut.unregisterAll();
-  if (!hotkey) return;
+
+  if (settings.hotkey) {
+    try {
+      globalShortcut.register(settings.hotkey, () => {
+        send('shortcut:mic', {});
+        if (mainWindow) mainWindow.focus();
+      });
+    } catch (err) {
+      console.warn('Mikrofon-Tastenkombination konnte nicht registriert werden:', err.message);
+    }
+  }
+
   try {
-    globalShortcut.register(hotkey, () => {
-      send('shortcut:mic', {});
-      if (mainWindow) mainWindow.focus();
-    });
+    globalShortcut.register(MACRO_HOTKEY, triggerMacroPaste);
   } catch (err) {
-    console.warn('Tastenkombination konnte nicht registriert werden:', err.message);
+    console.warn('Speed-Typer-Tastenkombination konnte nicht registriert werden:', err.message);
   }
 }
 
@@ -86,6 +113,12 @@ function startReminderTimer() {
       send('app:announce', { text });
     }
   }, 60 * 1000);
+}
+
+function startEyeCareTimer() {
+  setInterval(() => {
+    send('app:announce', { text: 'Sir, Sie sitzen nun seit zwei Stunden am Platz. Ich empfehle, kurz die Augen zu entspannen und etwas zu trinken.' });
+  }, 2 * 60 * 60 * 1000);
 }
 
 async function runStartupRoutine() {
@@ -148,8 +181,9 @@ app.whenReady().then(() => {
   meeting.init(send);
 
   const settings = memory.getSettings();
-  applyHotkey(settings.hotkey);
+  applyAllHotkeys(settings);
   startReminderTimer();
+  startEyeCareTimer();
 
   if (app.isPackaged) {
     setTimeout(checkForUpdates, 5000); // stiller Check kurz nach dem Start
@@ -176,7 +210,7 @@ ipcMain.handle('settings:get', () => memory.getSettings());
 ipcMain.handle('settings:save', (_event, settings) => {
   const saved = memory.saveSettings(settings);
   applyAutoStartSetting(!!saved.autoStart);
-  applyHotkey(saved.hotkey);
+  applyAllHotkeys(saved);
   return saved;
 });
 
@@ -226,7 +260,7 @@ ipcMain.handle('profiles:create', (_event, name) => profiles.createProfile(name)
 ipcMain.handle('profiles:switch', (_event, id) => {
   profiles.switchProfile(id);
   const settings = memory.getSettings();
-  applyHotkey(settings.hotkey);
+  applyAllHotkeys(settings);
   applyAutoStartSetting(!!settings.autoStart);
   return settings;
 });
