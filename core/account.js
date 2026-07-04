@@ -8,12 +8,27 @@ const VIP_ACTIVATION_CODE = null;
 
 const TIERS = { GUEST: 'guest', FREE: 'free', VIP: 'vip' };
 
-// Limits & Kosten - bewusst einfach gehalten (Lifetime-Zähler, kein Reset-Intervall),
-// da noch kein Zahlungssystem existiert. Später leicht auf z.B. monatlichen Reset umstellbar.
+// Limits & Kosten. Free-Kontingent resettet sich täglich um 0 Uhr (lokale Zeit).
 const GUEST_MESSAGE_LIMIT = 150;
-const FREE_MESSAGE_LIMIT = 500;
+const FREE_MESSAGE_LIMIT = 150;
 const FREE_STARTING_COINS = 100;
 const COIN_COST_PER_SKILL = 10;
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Setzt den Tageszähler zurück, sobald der gespeicherte Tag nicht mehr "heute" ist.
+function applyDailyReset(account) {
+  const today = todayKey();
+  if (account.lastResetDay !== today) {
+    account.messageCount = 0;
+    account.errorStreak = 0;
+    account.lastResetDay = today;
+  }
+  return account;
+}
 
 // Module, die laut der offiziellen Free/VIP-Feature-Liste hinter der VIP-Stufe stehen.
 // Für Gäste komplett gesperrt, für kostenlose Konten kosten sie Coins, für VIP unbegrenzt.
@@ -35,12 +50,14 @@ const VIP_SKILLS = new Set([
   'deep_diagnostics',     // Tiefendiagnose
   'cleanup_protocol',     // Protokoll Bereinigung
   'summarize_clipboard',  // Inhalts-Zusammenfasser
+  'toggle_gaming_mode',   // Gaming Mode (manuell per Sprachbefehl)
 ]);
 
 let guestSession = null; // { messageCount: 0 } - rein im Arbeitsspeicher, kein Login nötig
 
-function accountFile() {
-  return path.join(profiles.getActiveProfileDir(), 'account.json');
+function accountFile(profileId) {
+  const dir = profileId ? profiles.getProfileDir(profileId) : profiles.getActiveProfileDir();
+  return path.join(dir, 'account.json');
 }
 
 function readJson(file, fallback) {
@@ -56,13 +73,23 @@ function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-function getProfileAccount() {
-  const defaults = { tier: TIERS.FREE, coins: FREE_STARTING_COINS, messageCount: 0 };
-  return { ...defaults, ...readJson(accountFile(), {}) };
+function getProfileAccount(profileId) {
+  const defaults = { tier: TIERS.FREE, coins: FREE_STARTING_COINS, messageCount: 0, errorStreak: 0, lastResetDay: todayKey() };
+  const account = { ...defaults, ...readJson(accountFile(profileId), {}) };
+  return applyDailyReset(account);
 }
 
-function saveProfileAccount(account) {
-  writeJson(accountFile(), account);
+function saveProfileAccount(account, profileId) {
+  writeJson(accountFile(profileId), account);
+  return account;
+}
+
+// Setzt die Kontostufe für ein bestimmtes Profil (oder das aktive, falls keins angegeben) -
+// genutzt vom Admin-Panel, um anderen lokalen Konten VIP zu geben/entziehen.
+function setTier(tier, profileId) {
+  const account = getProfileAccount(profileId);
+  account.tier = tier;
+  saveProfileAccount(account, profileId);
   return account;
 }
 
@@ -94,19 +121,38 @@ function canSendMessage() {
     if (state.tier === TIERS.GUEST) {
       return { allowed: false, reason: `Sie haben Ihr Kontingent von ${GUEST_MESSAGE_LIMIT} Fragen als Gast erreicht, Sir. Bitte melden Sie sich an, um weiterzusprechen und Module nutzen zu können.` };
     }
-    return { allowed: false, reason: `Sie haben Ihr Kontingent von ${FREE_MESSAGE_LIMIT} Fragen erreicht, Sir. Werden Sie VIP, um unbegrenzt weiterzusprechen.` };
+    return { allowed: false, reason: `Sie haben Ihr tägliches Kontingent von ${FREE_MESSAGE_LIMIT} Antworten erreicht, Sir. Um Mitternacht setzt es sich zurück, oder werden Sie VIP für unbegrenzte Antworten.` };
   }
   return { allowed: true };
 }
 
-function recordMessage() {
+// isSystemError: true, wenn die Antwort ein echter Systemfehler war (z.B. kein API-Key,
+// KI-Anbieter nicht erreichbar) - NICHT bei normalen Antworten, in denen die KI lediglich
+// über ein Problem berichtet. Der ERSTE Systemfehler in Folge zählt nicht gegen das
+// Kontingent; wiederholt der Nutzer dieselbe fehlschlagende Aktion trotzdem weiter, zählt
+// ab dem zweiten Mal jede weitere Antwort ganz normal (mit Warnhinweis an den Aufrufer).
+function recordMessage(isSystemError = false) {
   if (guestSession) {
     guestSession.messageCount += 1;
-    return;
+    return { counted: true, warned: false };
   }
   const account = getProfileAccount();
+
+  if (isSystemError) {
+    account.errorStreak = (account.errorStreak || 0) + 1;
+    if (account.errorStreak <= 1) {
+      saveProfileAccount(account);
+      return { counted: false, warned: false };
+    }
+    account.messageCount = (account.messageCount || 0) + 1;
+    saveProfileAccount(account);
+    return { counted: true, warned: true };
+  }
+
+  account.errorStreak = 0;
   account.messageCount = (account.messageCount || 0) + 1;
   saveProfileAccount(account);
+  return { counted: true, warned: false };
 }
 
 function canUseSkill(skillName) {
@@ -145,6 +191,12 @@ function activateVip(code) {
   return { ok: true };
 }
 
+// Überschreibt das Konto des aktiven Profils komplett - genutzt beim Wiederherstellen
+// einer Cloud-Momentaufnahme (z.B. nach Neuinstallation), nicht im normalen Betrieb.
+function restoreAccount(data) {
+  saveProfileAccount(data);
+}
+
 module.exports = {
   TIERS,
   GUEST_MESSAGE_LIMIT,
@@ -159,4 +211,7 @@ module.exports = {
   canUseSkill,
   spendCoins,
   activateVip,
+  getProfileAccount,
+  setTier,
+  restoreAccount,
 };

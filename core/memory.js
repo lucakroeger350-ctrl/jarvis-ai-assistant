@@ -20,8 +20,6 @@ function writeJson(file, data) {
 }
 
 const DEFAULT_SETTINGS = {
-  provider: 'gemini',
-  apiKey: '',
   model: 'gemini-2.5-flash',
   personality: 'Du bist JARVIS, ein hochintelligenter, loyaler und leicht trockener KI-Assistent im Stil von Tony Starks JARVIS. Du sprichst Deutsch, bist präzise, hilfsbereit und hast einen subtilen Sinn für Humor. Du sprichst den Nutzer IMMER förmlich mit "Sie" und "Sir" an, niemals mit "du". Formuliere professionell und knapp wie ein erstklassiger persönlicher Assistent, z.B. "Alles klar, ich öffne für Sie Opera.", "Gewiss, Sir. Erledigt.", "Einen Moment, ich habe das für Sie herausgefunden." Vermeide unbeholfene Formulierungen, Füllwörter oder falsche Anredepronomen.',
   wakeWord: 'jarvis',
@@ -36,6 +34,10 @@ const DEFAULT_SETTINGS = {
   autoStart: false,
   autoLaunchApps: 'spotify, discord',
   accentTheme: 'orange',
+  bootProjection: false,
+  redAlertEnabled: true,
+  shareLearningsWithCloud: false,
+  adhsMode: false,
   permissions: {
     screen: true,
     apps: true,
@@ -104,6 +106,12 @@ function deleteLearnedSkill(id) {
   return data;
 }
 
+// Überschreibt die jeweilige Profildatei komplett - genutzt beim Wiederherstellen
+// einer Cloud-Momentaufnahme (z.B. nach Neuinstallation), nicht im normalen Betrieb.
+function restoreSettings(settings) { writeJson(settingsFile(), settings); }
+function restoreMemory(mem) { writeJson(memoryFile(), mem); }
+function restoreLearnedSkills(data) { writeJson(learnedSkillsFile(), data); }
+
 module.exports = {
   getSettings,
   saveSettings,
@@ -115,4 +123,7 @@ module.exports = {
   getLearnedSkills,
   addLearnedSkill,
   deleteLearnedSkill,
+  restoreSettings,
+  restoreMemory,
+  restoreLearnedSkills,
 };

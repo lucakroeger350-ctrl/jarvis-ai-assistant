@@ -200,6 +200,17 @@
     const { ctx, w, h } = waveSetup;
     ctx.clearRect(0, 0, w, h);
 
+    // Oszilloskop-Raster im Hintergrund
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,87,34,0.10)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx <= w; gx += 26) {
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,87,34,0.16)';
+    ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+    ctx.restore();
+
     for (let i = 0; i < POINTS; i++) {
       waveCurrent[i] += (waveTargets[i] - waveCurrent[i]) * 0.15;
       waveCurrent2[i] += (waveTargets2[i] - waveCurrent2[i]) * 0.15;
@@ -212,11 +223,23 @@
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
+    // Farbverlauf-Füllung unter der Hauptwelle
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    for (let i = 0; i < POINTS; i++) { const p = toXY1(waveCurrent[i], i); ctx.lineTo(p.x, p.y); }
+    ctx.lineTo(w, h / 2);
+    ctx.closePath();
+    const fill = ctx.createLinearGradient(0, 0, 0, h / 2);
+    fill.addColorStop(0, 'rgba(255,87,34,0.28)');
+    fill.addColorStop(1, 'rgba(255,87,34,0)');
+    ctx.fillStyle = fill;
+    ctx.fill();
+
     smoothLine(ctx, waveCurrent, toXY1);
     ctx.strokeStyle = '#ff5722';
     ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(255,87,34,0.5)';
-    ctx.shadowBlur = 7;
+    ctx.shadowColor = 'rgba(255,87,34,0.6)';
+    ctx.shadowBlur = 9;
     ctx.stroke();
 
     smoothLine(ctx, waveCurrent2, toXY2);

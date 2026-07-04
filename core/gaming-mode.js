@@ -98,4 +98,8 @@ function setOverlayActive(active) {
   overlayActive = active;
 }
 
-module.exports = { startWatcher, respondToPrompt, closeBackgroundApps, setOverlayActive };
+function isOverlayActive() {
+  return overlayActive;
+}
+
+module.exports = { startWatcher, respondToPrompt, closeBackgroundApps, setOverlayActive, isOverlayActive };

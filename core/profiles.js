@@ -72,7 +72,10 @@ function getActiveProfileId() {
 }
 
 function getActiveProfileDir() {
-  const id = getActiveProfileId();
+  return getProfileDir(getActiveProfileId());
+}
+
+function getProfileDir(id) {
   const dir = path.join(PROFILES_DIR, id || 'default');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
@@ -128,6 +131,7 @@ module.exports = {
   listProfiles,
   getActiveProfileId,
   getActiveProfileDir,
+  getProfileDir,
   switchProfile,
   createProfile,
   renameProfile,

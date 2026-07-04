@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const memory = require('./core/memory');
+const autostart = require('./core/autostart');
+const desktopRefresh = require('./core/desktop-refresh');
 const brain = require('./core/brain');
 const whisperStt = require('./core/whisper-stt');
 const { launchApp } = require('./core/launcher');
@@ -11,6 +13,10 @@ const calendar = require('./core/calendar');
 const meeting = require('./core/meeting');
 const profiles = require('./core/profiles');
 const auth = require('./core/auth');
+const cloudSync = require('./core/cloud-sync');
+const creditGate = require('./core/credit-gate');
+const dlcManager = require('./core/dlc-manager');
+const aiClient = require('./core/ai-client');
 const { autoUpdater } = require('electron-updater');
 const integrations = require('./core/integrations');
 const piperTts = require('./core/piper-tts');
@@ -19,6 +25,8 @@ const visualizerBridge = require('./core/visualizer-bridge');
 const networkScan = require('./core/network-scan');
 const account = require('./core/account');
 const gamingMode = require('./core/gaming-mode');
+const sharedLearnings = require('./core/shared-learnings');
+const gamingBridge = require('./core/gaming-bridge');
 const securityGuard = require('./core/security-guard');
 const faceModels = require('./core/face-models');
 const { activateStealthMode } = require('./core/stealth-mode');
@@ -28,6 +36,7 @@ const autoType = require('./core/auto-type');
 const vaultBridge = require('./core/vault-bridge');
 const deepDiagnostics = require('./core/deep-diagnostics');
 const companionOverlay = require('./core/companion-overlay');
+const screenManager = require('./core/screen-manager');
 
 let mainWindow;
 let gamingOverlayWindow = null;
@@ -62,14 +71,23 @@ function send(channel, payload) {
 
 function applyAutoStartSetting(enabled) {
   try {
-    // In der installierten (gepackten) Version braucht die .exe keinen Pfad-Parameter -
-    // der wurde bisher fälschlich immer mitgegeben, wodurch der Autostart-Eintrag
-    // fehlerhaft war und Windows JARVIS beim Login nicht korrekt gestartet hat.
-    app.setLoginItemSettings({
-      openAtLogin: enabled,
-      path: process.execPath,
-      args: enabled && !app.isPackaged ? [path.join(__dirname)] : [],
-    });
+    if (app.isPackaged) {
+      // Alten Registry-Run-Key aus früheren JARVIS-Versionen entfernen (Migration),
+      // damit niemand doppelt startet (einmal per Run-Key, einmal per Scheduled Task).
+      app.setLoginItemSettings({ openAtLogin: false, path: process.execPath });
+      // Scheduled Task statt Registry-Run-Key: startet ohne Windows' eingebaute
+      // Login-Verzögerung (siehe core/autostart.js).
+      if (enabled) autostart.enable(process.execPath);
+      else autostart.disable();
+    } else {
+      // Im Entwicklungsmodus (npm start) bleibt der einfache Weg, da hier kein
+      // sinnvoller alleinstehender Programmpfad für einen Scheduled Task existiert.
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        path: process.execPath,
+        args: enabled ? [path.join(__dirname)] : [],
+      });
+    }
   } catch (err) {
     console.warn('Autostart konnte nicht gesetzt werden:', err.message);
   }
@@ -145,6 +163,17 @@ function startEyeCareTimer() {
   setInterval(() => {
     send('app:announce', { text: 'Sir, Sie sitzen nun seit zwei Stunden am Platz. Ich empfehle, kurz die Augen zu entspannen und etwas zu trinken.' });
   }, 2 * 60 * 60 * 1000);
+}
+
+// Kurze, häufigere Check-ins statt des seltenen Augen-Timers - nur wenn ADHS-Modus
+// in den Einstellungen aktiviert ist (prüft bei jedem Tick neu, reagiert also sofort
+// auf ein Ein-/Ausschalten ohne Neustart).
+function startAdhsCheckInTimer() {
+  setInterval(() => {
+    const settings = memory.getSettings();
+    if (!settings.adhsMode) return;
+    send('app:announce', { text: 'Kurzer Check-in, Sir: Noch im Fokus? Sagen Sie mir, woran Sie gerade arbeiten.' });
+  }, 20 * 60 * 1000);
 }
 
 function startHardwareWatchdog() {
@@ -225,7 +254,10 @@ function enterGamingOverlay() {
   gamingMode.setOverlayActive(true);
   if (mainWindow) mainWindow.hide();
 
-  const display = screen.getPrimaryDisplay();
+  // Bug-Fix: Kugel erschien immer auf dem PRIMÄREN Monitor - bei Mehrmonitor-Setups
+  // war das oft nicht der Monitor, auf dem gerade gespielt wird. Jetzt der Monitor,
+  // auf dem sich gerade der Mauszeiger befindet (meist der aktive Spiel-Monitor).
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   gamingOverlayWindow = new BrowserWindow({
     width: 110,
     height: 110,
@@ -233,6 +265,8 @@ function enterGamingOverlay() {
     y: display.workArea.y + 20,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
+    roundedCorners: false,
     resizable: false,
     skipTaskbar: true,
     hasShadow: false,
@@ -255,7 +289,13 @@ function enterGamingOverlay() {
 
 function exitGamingOverlay() {
   gamingMode.setOverlayActive(false);
-  if (gamingOverlayWindow) { gamingOverlayWindow.close(); gamingOverlayWindow = null; }
+  // Erst verstecken, dann schließen - lässt Windows/DWM die transparente Fensterregion
+  // sauber freigeben, statt sie beim direkten Schließen als Bildreste stehen zu lassen.
+  if (gamingOverlayWindow) {
+    gamingOverlayWindow.hide();
+    gamingOverlayWindow.close();
+    gamingOverlayWindow = null;
+  }
   if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
 }
 
@@ -272,6 +312,7 @@ function triggerLockdown() {
   });
 
   const displays = screen.getAllDisplays();
+  const primaryDisplay = mainWindow ? screen.getDisplayMatching(mainWindow.getBounds()) : screen.getPrimaryDisplay();
   lockdownWindows = displays.map((display) => {
     const win = new BrowserWindow({
       x: display.bounds.x,
@@ -291,6 +332,11 @@ function triggerLockdown() {
     });
     win.setAlwaysOnTop(true, 'screen-saver');
     win.loadFile(path.join(__dirname, 'src', 'lockdown.html'));
+    // Bug-Fix: garantiert, dass das PIN-Eingabefeld auf dem Hauptmonitor den
+    // Tastatur-Fokus bekommt (bei mehreren Fenstern sonst nicht sichergestellt).
+    if (display.id === primaryDisplay.id) {
+      win.webContents.once('did-finish-load', () => win.focus());
+    }
     return win;
   });
 }
@@ -299,15 +345,30 @@ function endLockdown() {
   LOCKDOWN_OVERRIDE_KEYS.forEach((key) => {
     try { globalShortcut.unregister(key); } catch { /* ignore */ }
   });
-  lockdownWindows.forEach((w) => { if (!w.isDestroyed()) w.close(); });
+  // Erst verstecken, dann zerstören - lässt Windows/DWM die Vollbild-Fensterregion
+  // sauber freigeben, statt sie als schwarzen Rest auf dem Desktop stehen zu lassen
+  // (Bug: Icons markieren blieb sonst minutenlang schwarz).
+  lockdownWindows.forEach((w) => { if (!w.isDestroyed()) { w.hide(); w.destroy(); } });
   lockdownWindows = [];
   applyAllHotkeys(memory.getSettings());
+  desktopRefresh.refreshDesktop();
 }
 
 function startGamingWatchdog() {
   gamingMode.startWatcher((gameName) => {
     send('app:announce', { text: `Sir, ich habe ${gameName} erkannt. Möchten Sie, dass ich mich minimiere?` });
   });
+}
+
+// Sichert das aktive Profil regelmäßig in die Cloud (Supabase), damit Einstellungen,
+// gemerkte Fakten, gelernte Skills und VIP-/Coin-Stand auch nach einer Neuinstallation
+// wiederhergestellt werden können. Läuft nur, solange eine Cloud-Sitzung besteht.
+function startCloudSyncTimer() {
+  setInterval(async () => {
+    const session = await auth.getFullSession().catch(() => null);
+    if (!session) return;
+    cloudSync.pushProfile(session.accessToken, session.userId, session.email, session.displayName).catch(() => {});
+  }, 90 * 1000);
 }
 
 function startNetworkWatchdog() {
@@ -317,11 +378,46 @@ function startNetworkWatchdog() {
   });
 }
 
+const BOOT_PROJECTION_TEXT = 'Guten Tag Sir! Die Systeme wurden alle gestartet und sind einsatzbereit, sobald Sie es sagen!';
+
+// Cinematische Boot-Projektion über alle Monitore. Der Hauptmonitor zeigt die Kugel
+// mit Ansage + Eingabeleiste, weitere Monitore das HUD. Die Ansage wird zusätzlich
+// über die normale Sprachpipeline des Hauptfensters gesprochen (Audio läuft auch,
+// während die Projektion darüber liegt).
+function startBootProjection() {
+  screenManager.open('boot', 'orb', 'hud', { text: BOOT_PROJECTION_TEXT, showInput: true });
+  send('app:announce', { text: BOOT_PROJECTION_TEXT });
+}
+
+function endBootProjection() {
+  // HUD zieht sich zurück -> Projektion schließen, Desktop + Hauptfenster wieder frei.
+  screenManager.closeAll();
+  if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); }
+  desktopRefresh.refreshDesktop();
+}
+
+// Unterscheidet einen echten Windows-Neustart/-Login (PC gerade erst hochgefahren) von
+// einem simplen Wiederöffnen von JARVIS auf einem PC, der schon länger läuft - die
+// cinematische Boot-Projektion soll nur beim wirklichen Hochfahren laufen, sonst reicht
+// eine normale, kurze Begrüßung.
+const FRESH_BOOT_UPTIME_THRESHOLD_SEC = 180;
+function isFreshBoot() {
+  return os.uptime() < FRESH_BOOT_UPTIME_THRESHOLD_SEC;
+}
+
 async function runStartupRoutine() {
   const settings = memory.getSettings();
   applyAutoStartSetting(!!settings.autoStart);
 
-  send('app:greeting', { text: buildGreeting(settings.userName) });
+  if (settings.bootProjection && isFreshBoot()) {
+    startBootProjection();
+  } else {
+    send('app:greeting', { text: buildGreeting(settings.userName) });
+  }
+
+  if (settings.shareLearningsWithCloud) {
+    sharedLearnings.syncSharedLearnings().catch(() => {});
+  }
 
   const guardStatus = securityGuard.getStatus();
   if (guardStatus.enabled && guardStatus.hasFace && guardStatus.hasPin) {
@@ -383,18 +479,28 @@ app.whenReady().then(() => {
   meeting.init(send);
   visualizerBridge.init(send);
   vaultBridge.init(openVaultPinPopup);
+  creditGate.init(send);
+  dlcManager.init(send);
+  gamingBridge.init(enterGamingOverlay, exitGamingOverlay);
   companionOverlay.init(() => mainWindow);
+  screenManager.init(() => mainWindow);
+  screenManager.onDismiss(() => endBootProjection());
 
   const settings = memory.getSettings();
   applyAllHotkeys(settings);
   startReminderTimer();
   startEyeCareTimer();
+  startAdhsCheckInTimer();
   startHardwareWatchdog();
   startNetworkWatchdog();
   startGamingWatchdog();
+  startCloudSyncTimer();
 
   if (app.isPackaged) {
     setTimeout(checkForUpdates, 5000); // stiller Check kurz nach dem Start
+    // Zusätzlich regelmäßig im Hintergrund prüfen, damit neu veröffentlichte Updates
+    // auch erkannt werden, wenn JARVIS schon länger läuft (nicht nur beim Start).
+    setInterval(checkForUpdates, 4 * 60 * 60 * 1000); // alle 4 Stunden
   }
 
   app.on('activate', () => {
@@ -406,12 +512,36 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// Bug-Fix: garantiert, dass beim Beenden/Deinstallieren/Absturz KEIN Vollbild- oder
+// Overlay-Fenster (Sperrbildschirm, Projektion, Gaming-/Companion-Kugel) hängen bleibt -
+// sonst könnte der Bildschirm dauerhaft schwarz/verdeckt bleiben.
+function closeAllOverlayWindows() {
+  try { screenManager.closeAll(); } catch { /* ignore */ }
+  try {
+    lockdownWindows.forEach((w) => { if (w && !w.isDestroyed()) w.destroy(); });
+    lockdownWindows = [];
+  } catch { /* ignore */ }
+  try { if (gamingOverlayWindow && !gamingOverlayWindow.isDestroyed()) gamingOverlayWindow.destroy(); } catch { /* ignore */ }
+  try { if (vaultPinWindow && !vaultPinWindow.isDestroyed()) vaultPinWindow.destroy(); } catch { /* ignore */ }
+}
+
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  closeAllOverlayWindows();
 });
+
+// Zusätzliches Sicherheitsnetz: fängt Fälle ab, in denen "will-quit" durch einen
+// Absturz/hartes Beenden nicht mehr erreicht wird.
+process.on('exit', closeAllOverlayWindows);
 
 ipcMain.on('app:error', (_event, message) => showSystemErrorPopup(message));
 ipcMain.on('app:status-changed', (_event, state) => companionOverlay.setState(state));
+
+// Boot-/Shutdown-Projektion: Nutzer bestätigt in der Kugel-Eingabeleiste.
+ipcMain.handle('projection:dismiss', (_event, value) => {
+  screenManager.triggerDismiss(value);
+  return true;
+});
 
 ipcMain.handle('jarvis:chat', async (_event, message) => {
   const gamingResponse = gamingMode.respondToPrompt(message);
@@ -463,10 +593,6 @@ ipcMain.handle('security:verify-pin', (_event, pin) => {
   if (ok) endLockdown();
   return { ok };
 });
-ipcMain.handle('gaming:set-ignore-mouse', (_event, ignore) => {
-  if (gamingOverlayWindow) gamingOverlayWindow.setIgnoreMouseEvents(ignore, { forward: true });
-  return true;
-});
 
 ipcMain.handle('settings:get', () => memory.getSettings());
 ipcMain.handle('settings:save', (_event, settings) => {
@@ -476,18 +602,43 @@ ipcMain.handle('settings:save', (_event, settings) => {
   return saved;
 });
 
-ipcMain.handle('auth:register', (_event, { email, password, displayName }) => {
+ipcMain.handle('auth:register', async (_event, { email, password, displayName }) => {
   account.endGuestSession();
-  return auth.register(email, password, displayName);
+  const result = await auth.register(email, password, displayName);
+  const session = await auth.getFullSession().catch(() => null);
+  if (session) creditGate.startWatching(session);
+  return result;
 });
-ipcMain.handle('auth:login', (_event, { email, password }) => {
+ipcMain.handle('auth:login', async (_event, { email, password }) => {
   account.endGuestSession();
-  return auth.login(email, password);
+  const result = await auth.login(email, password);
+  const session = await auth.getFullSession().catch(() => null);
+  if (session) creditGate.startWatching(session);
+  return result;
 });
-ipcMain.handle('auth:logout', () => auth.logout());
+ipcMain.handle('auth:logout', async () => {
+  const session = await auth.getFullSession().catch(() => null);
+  if (session) await cloudSync.pushProfile(session.accessToken, session.userId, session.email, session.displayName).catch(() => {});
+  creditGate.stopWatching();
+  return auth.logout();
+});
 ipcMain.handle('auth:get-session', () => auth.getSession());
 ipcMain.handle('auth:continue-as-guest', () => { account.startGuestSession(); return true; });
-ipcMain.handle('app:session-ready', () => { runStartupRoutine(); return true; });
+ipcMain.handle('app:session-ready', async () => {
+  runStartupRoutine();
+  const session = await auth.getFullSession().catch(() => null);
+  if (session) creditGate.startWatching(session);
+  return true;
+});
+ipcMain.handle('credits:open-marketplace', () => shell.openExternal(`${aiClient.WEBSITE_URL}/marketplace`));
+
+// Generischer DLC-Teaser: Free-User klickt auf eine gesperrte Premium-Option -> kein
+// Fehler, stattdessen Hinweis im HUD + Weiterleitung zur Kauf-Seite im Standard-Browser.
+ipcMain.handle('dlc:teaser', (_event, dlcColumn) => {
+  if (dlcManager.hasDlc(dlcColumn)) return { owned: true };
+  shell.openExternal(`${aiClient.WEBSITE_URL}/marketplace`);
+  return { owned: false };
+});
 
 ipcMain.handle('account:get-state', () => account.getAccountState());
 ipcMain.handle('account:activate-vip', (_event, code) => account.activateVip(code));

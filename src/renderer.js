@@ -221,6 +221,32 @@
     if (window.hud) window.hud.setLevel(active ? 0.08 : 0);
   });
 
+  const creditOverlay = document.getElementById('creditOverlay');
+  window.jarvis.onCreditsLocked(() => {
+    logLine('alert', '[SYSTEM_ALERT]: Ihre KI-Antworteinheiten sind vollständig aufgebraucht.');
+    if (creditOverlay) creditOverlay.classList.add('active');
+    if (window.hud) window.hud.setState('speaking'); // rote Fehlerfarbe des Reaktors
+  });
+  window.jarvis.onCreditsUnlocked(() => {
+    logLine('system', '[SYSTEM_INFO]: KI-Antworteinheiten wieder verfügbar. Freischaltung erfolgt.');
+    if (creditOverlay) creditOverlay.classList.remove('active');
+    if (window.hud) window.hud.setState('idle');
+  });
+  const creditRefillBtn = document.getElementById('creditRefillBtn');
+  const creditVipBtn = document.getElementById('creditVipBtn');
+  if (creditRefillBtn) creditRefillBtn.addEventListener('click', () => window.jarvis.openMarketplace());
+
+  const beamDesignBtn = document.getElementById('beamDesignBtn');
+  if (beamDesignBtn) {
+    beamDesignBtn.addEventListener('click', async () => {
+      const result = await window.jarvis.dlcTeaser('has_dlc_hud_customizer');
+      if (!result.owned) {
+        logLine('system', '[SYSTEM_INFO]: Dieses Modul erfordert das HUD Customizer DLC. Sie werden zur Kommandozentrale weitergeleitet.');
+      }
+    });
+  }
+  if (creditVipBtn) creditVipBtn.addEventListener('click', () => window.jarvis.openMarketplace());
+
   window.addEventListener('error', (e) => window.jarvis.reportError(e.message || String(e.error)));
   window.addEventListener('unhandledrejection', (e) => window.jarvis.reportError(e.reason && e.reason.message ? e.reason.message : String(e.reason)));
 

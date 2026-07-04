@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "port": 0
+    },
+    {
+      "name": "jarvis-ui-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5599", "--directory", "src"],
+      "port": 5599
+    },
+    {
+      "name": "jarvis-website",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "website"],
+      "port": 3000
     }
   ]
 }

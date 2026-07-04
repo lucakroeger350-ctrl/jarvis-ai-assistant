@@ -25,7 +25,7 @@ function ensureWindow() {
   const secondary = pickSecondaryDisplay();
 
   if (!secondary) {
-    if (companionWindow && !companionWindow.isDestroyed()) companionWindow.close();
+    if (companionWindow && !companionWindow.isDestroyed()) { companionWindow.hide(); companionWindow.close(); }
     companionWindow = null;
     return;
   }
@@ -39,6 +39,8 @@ function ensureWindow() {
     height: secondary.bounds.height,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
+    roundedCorners: false,
     resizable: false,
     skipTaskbar: true,
     hasShadow: false,
@@ -56,10 +58,14 @@ function ensureWindow() {
   companionWindow.on('closed', () => { companionWindow = null; });
 }
 
+// Zeigt den Status auf dem zweiten Monitor NUR, wenn das Hauptfenster minimiert ist -
+// läuft JARVIS sichtbar im Vordergrund, übernimmt dort schon der normale Reaktor-Ring
+// die Anzeige, eine Dopplung auf dem zweiten Monitor wäre unnötig/störend.
 function setState(state) {
-  if (companionWindow && !companionWindow.isDestroyed()) {
-    companionWindow.webContents.send('companion:state', { state });
-  }
+  if (!companionWindow || companionWindow.isDestroyed()) return;
+  const mainWindow = getMainWindow ? getMainWindow() : null;
+  const isMinimized = mainWindow ? mainWindow.isMinimized() : false;
+  companionWindow.webContents.send('companion:state', { state: isMinimized ? state : 'idle' });
 }
 
 module.exports = { init, setState };

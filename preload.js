@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('jarvis', {
   onSecurityArmedChanged: (cb) => ipcRenderer.on('security:armed-changed', (_e, payload) => cb(payload.armed)),
   onStealthLog: (cb) => ipcRenderer.on('stealth:log', (_e, payload) => cb(payload.text)),
   onGhostStateChanged: (cb) => ipcRenderer.on('ghost:state-changed', (_e, payload) => cb(payload.active)),
+  onCreditsLocked: (cb) => ipcRenderer.on('credits:locked', () => cb()),
+  onCreditsUnlocked: (cb) => ipcRenderer.on('credits:unlocked', () => cb()),
+  openMarketplace: () => ipcRenderer.invoke('credits:open-marketplace'),
+  dlcTeaser: (column) => ipcRenderer.invoke('dlc:teaser', column),
   onCleanupLogLine: (cb) => ipcRenderer.on('cleanup:log-line', (_e, payload) => cb(payload.text)),
   reportError: (message) => ipcRenderer.send('app:error', message),
   reportStatus: (state) => ipcRenderer.send('app:status-changed', state),
@@ -81,6 +85,7 @@ contextBridge.exposeInMainWorld('jarvis', {
   vaultList: () => ipcRenderer.invoke('vault:list'),
   vaultAddEntry: (data) => ipcRenderer.invoke('vault:add-entry', data),
   vaultDeleteEntry: (data) => ipcRenderer.invoke('vault:delete-entry', data),
+
 
   openSoundSettings: () => ipcRenderer.invoke('system:open-sound-settings'),
   openVoiceSettings: () => ipcRenderer.invoke('system:open-voice-settings'),

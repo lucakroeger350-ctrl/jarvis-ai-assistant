@@ -8,40 +8,20 @@
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabPanels = document.querySelectorAll('.tab-panel');
 
-  const providerEl = document.getElementById('provider');
-  const apiKeyEl = document.getElementById('apiKey');
-  const apiKeyLabelEl = document.getElementById('apiKeyLabel');
-  const apiKeyHintEl = document.getElementById('apiKeyHint');
   const modelEl = document.getElementById('model');
 
-  const MODELS = {
-    gemini: [
-      { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash (schnell, kostenlos)' },
-      { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro (stärker, kostenlos mit Limit)' },
-    ],
-    anthropic: [
-      { value: 'claude-opus-4-8', label: 'claude-opus-4-8' },
-      { value: 'claude-sonnet-5', label: 'claude-sonnet-5' },
-      { value: 'claude-haiku-4-5-20251001', label: 'claude-haiku-4-5' },
-    ],
-  };
+  const MODELS = [
+    { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash (schnell)' },
+    { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro (stärker)' },
+  ];
 
-  const HINTS = {
-    gemini: 'Kostenlosen Key holen: aistudio.google.com → "Get API key" (Google-Konto reicht, keine Kreditkarte nötig).',
-    anthropic: 'Kostenpflichtigen Key holen: console.anthropic.com → "API Keys" (Guthaben/Zahlungsmethode nötig).',
-  };
-
-  function updateProviderUI(provider, selectedModel) {
-    const models = MODELS[provider] || MODELS.gemini;
-    modelEl.innerHTML = models.map((m) => `<option value="${m.value}">${m.label}</option>`).join('');
-    if (selectedModel && models.some((m) => m.value === selectedModel)) {
+  function updateModelOptions(selectedModel) {
+    modelEl.innerHTML = MODELS.map((m) => `<option value="${m.value}">${m.label}</option>`).join('');
+    if (selectedModel && MODELS.some((m) => m.value === selectedModel)) {
       modelEl.value = selectedModel;
     }
-    apiKeyHintEl.textContent = HINTS[provider] || '';
-    apiKeyLabelEl.firstChild.textContent = provider === 'anthropic' ? 'Anthropic API-Key' : 'Google Gemini API-Key';
   }
 
-  providerEl.addEventListener('change', () => updateProviderUI(providerEl.value));
   const personalityEl = document.getElementById('personality');
   const userNameEl = document.getElementById('userName');
   const languageEl = document.getElementById('language');
@@ -62,6 +42,10 @@
   openVoiceSettingsBtn.addEventListener('click', () => window.jarvis.openVoiceSettings());
   const autoStartEl = document.getElementById('autoStart');
   const autoLaunchAppsEl = document.getElementById('autoLaunchApps');
+  const bootProjectionEl = document.getElementById('bootProjection');
+  const redAlertEnabledEl = document.getElementById('redAlertEnabled');
+  const adhsModeEl = document.getElementById('adhsMode');
+  const shareLearningsEl = document.getElementById('shareLearningsWithCloud');
   const permScreenEl = document.getElementById('permScreen');
   const permAppsEl = document.getElementById('permApps');
   const permFilesEl = document.getElementById('permFiles');
@@ -142,9 +126,7 @@
 
   async function loadSettings() {
     const s = await window.jarvis.getSettings();
-    providerEl.value = s.provider || 'gemini';
-    updateProviderUI(providerEl.value, s.model);
-    apiKeyEl.value = s.apiKey || '';
+    updateModelOptions(s.model);
     personalityEl.value = s.personality || '';
     userNameEl.value = s.userName || '';
     languageEl.value = s.language || 'de-DE';
@@ -159,6 +141,10 @@
     macroTextEl.value = s.macroText || '';
     autoStartEl.checked = !!s.autoStart;
     autoLaunchAppsEl.value = s.autoLaunchApps || '';
+    bootProjectionEl.checked = !!s.bootProjection;
+    redAlertEnabledEl.checked = s.redAlertEnabled !== false;
+    adhsModeEl.checked = !!s.adhsMode;
+    shareLearningsEl.checked = !!s.shareLearningsWithCloud;
     permScreenEl.checked = !!s.permissions?.screen;
     permAppsEl.checked = !!s.permissions?.apps;
     permFilesEl.checked = !!s.permissions?.files;
@@ -172,8 +158,6 @@
 
   async function saveSettings() {
     const settings = {
-      provider: providerEl.value,
-      apiKey: apiKeyEl.value.trim(),
       model: modelEl.value,
       personality: personalityEl.value,
       userName: userNameEl.value.trim(),
@@ -186,6 +170,10 @@
       macroText: macroTextEl.value,
       autoStart: autoStartEl.checked,
       autoLaunchApps: autoLaunchAppsEl.value.trim(),
+      bootProjection: bootProjectionEl.checked,
+      redAlertEnabled: redAlertEnabledEl.checked,
+      adhsMode: adhsModeEl.checked,
+      shareLearningsWithCloud: shareLearningsEl.checked,
       accentTheme: selectedTheme,
       permissions: {
         screen: permScreenEl.checked,

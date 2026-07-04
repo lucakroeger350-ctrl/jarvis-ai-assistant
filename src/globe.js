@@ -97,17 +97,29 @@
     updateRotation();
     ctx.clearRect(0, 0, size, size);
 
+    // Atmosphären-Glühen um die Kugel (Halo)
+    const atmo = ctx.createRadialGradient(cx, cy, R * 0.85, cx, cy, R * 1.28);
+    atmo.addColorStop(0, 'rgba(255,87,34,0.22)');
+    atmo.addColorStop(1, 'rgba(255,87,34,0)');
+    ctx.fillStyle = atmo;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 1.28, 0, Math.PI * 2);
+    ctx.fill();
+
     // Kugel-Silhouette
     const sphereGrad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
-    sphereGrad.addColorStop(0, 'rgba(255,87,34,0.12)');
+    sphereGrad.addColorStop(0, 'rgba(255,87,34,0.14)');
     sphereGrad.addColorStop(1, 'rgba(10,8,7,0.9)');
     ctx.fillStyle = sphereGrad;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,87,34,0.4)';
+    ctx.strokeStyle = 'rgba(255,87,34,0.55)';
     ctx.lineWidth = 1.5;
+    ctx.shadowColor = 'rgba(255,87,34,0.5)';
+    ctx.shadowBlur = 12;
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
     // Breiten-/Längengitter
     ctx.strokeStyle = 'rgba(255,87,34,0.22)';

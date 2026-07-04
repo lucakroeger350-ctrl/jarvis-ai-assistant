@@ -174,28 +174,24 @@
         <button class="close-btn" id="closeSettingsBtn">✕</button>
       </div>
       <div class="settings-tabs">
+        <span class="tab-group-label">Allgemein</span>
         <button class="tab-btn active" data-tab="ai">KI</button>
         <button class="tab-btn" data-tab="speech">Sprache</button>
         <button class="tab-btn" data-tab="design">Design</button>
+
+        <span class="tab-group-label">Sicherheit</span>
         <button class="tab-btn" data-tab="permissions">Berechtigungen</button>
-        <button class="tab-btn" data-tab="knowledge">Wissen &amp; Lernen</button>
-        <button class="tab-btn" data-tab="profiles">Profile</button>
-        <button class="tab-btn" data-tab="vip">VIP</button>
-        <button class="tab-btn" data-tab="security">Sicherheit</button>
+        <button class="tab-btn" data-tab="security">Gesicht &amp; PIN</button>
         <button class="tab-btn" data-tab="vault">Tresor</button>
+
+        <span class="tab-group-label">Konto</span>
+        <button class="tab-btn" data-tab="profiles">Profil</button>
+        <button class="tab-btn" data-tab="vip">VIP</button>
+        <button class="tab-btn" data-tab="knowledge">Wissen &amp; Lernen</button>
       </div>
 
       <div class="tab-panel active" id="tab-ai">
-        <label>KI-Anbieter
-          <select id="provider">
-            <option value="gemini">Google Gemini (kostenlos)</option>
-            <option value="anthropic">Anthropic Claude (kostenpflichtig)</option>
-          </select>
-        </label>
-        <label id="apiKeyLabel">API-Key
-          <input type="password" id="apiKey" placeholder="API-Key hier einfügen" />
-        </label>
-        <div id="apiKeyHint" style="font-size:12px; opacity:0.6;"></div>
+        <div style="font-size:12px; opacity:0.6; margin-bottom:10px;">JARVIS läuft über einen zentralen, sicher gehosteten KI-Zugang - kein eigener API-Key nötig.</div>
         <label>Modell
           <select id="model"></select>
         </label>
@@ -256,6 +252,18 @@
         <label>Programme beim Start öffnen (kommagetrennt)
           <input type="text" id="autoLaunchApps" placeholder="spotify, discord" />
         </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="bootProjection" />
+          Cinematische Boot-Projektion über alle Monitore (beim Start)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="redAlertEnabled" />
+          Roten Alarm zulassen (Vollbild-Neon-Rot bei Bedrohung)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="adhsMode" />
+          ADHS-Modus (kürzere, direktere Antworten + häufigere Check-ins)
+        </label>
       </div>
 
       <div class="tab-panel" id="tab-design">
@@ -268,6 +276,12 @@
           <button type="button" class="swatch swatch-purple" data-theme="purple" title="Lila"></button>
         </div>
         <div style="font-size:12px; opacity:0.6;">Die Statusfarben (Grün = Zuhören, Rot = Antworten) bleiben unabhängig davon immer gleich, damit sie erkennbar bleiben.</div>
+
+        <div class="knowledge-section" style="margin-top:18px;">
+          <div class="knowledge-title">HUD-Bearbeitungsmodus (DLC)</div>
+          <button type="button" class="save-btn" id="beamDesignBtn" style="opacity:0.5;">🔒 Strahl-Design freischalten</button>
+          <div style="font-size:11px; opacity:0.55; margin-top:6px;">Widgets per Drag &amp; Drop verschieben + alternatives Strahl-Design - Teil des "HUD Customizer &amp; Shape-Shifter"-DLCs.</div>
+        </div>
       </div>
 
       <div class="tab-panel" id="tab-permissions">
@@ -293,6 +307,13 @@
         <div class="knowledge-section">
           <div class="knowledge-title">Gelernte Kommandos</div>
           <div id="learnedList" class="knowledge-list"></div>
+        </div>
+        <div class="knowledge-section">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+            <input type="checkbox" id="shareLearningsWithCloud" style="width:auto;" />
+            Gelernte Kommandos anonym mit der Community teilen
+          </label>
+          <div style="font-size:11px; opacity:0.6; margin-top:4px;">Teilt nur Trigger→Aktion-Paare (keine persönlichen Daten) mit anderen JARVIS-Installationen und übernimmt umgekehrt deren Erkenntnisse.</div>
         </div>
         <button class="danger-btn" id="resetMemoryBtn">Gedächtnis zurücksetzen</button>
       </div>
@@ -443,6 +464,16 @@
     <div class="focus-label">FOKUS-MODUS AKTIV</div>
     <div class="focus-countdown" id="focusCountdown">00:00</div>
     <div class="focus-hint">Konzentration. Störungen werden ignoriert.</div>
+  </div>
+
+  <!-- Credit-Sperre: KI-Antworteinheiten aufgebraucht -->
+  <div class="credit-overlay" id="creditOverlay">
+    <div class="credit-orb"></div>
+    <div class="credit-title">[SYSTEM_ALERT]: Ihre KI-Antworteinheiten sind vollständig aufgebraucht.</div>
+    <div class="credit-actions">
+      <button type="button" id="creditRefillBtn">CREDITS AUFLADEN (+500 Einheiten für 3,50€)</button>
+      <button type="button" id="creditVipBtn">VIP WERDEN</button>
+    </div>
   </div>
 
   <script src="hud.js"></script>

@@ -1,6 +1,7 @@
 const { exec } = require('child_process');
 const memory = require('../core/memory');
 const visualizerBridge = require('../core/visualizer-bridge');
+const screenManager = require('../core/screen-manager');
 const { minimizeAllWindows, buildGoodbyeMessage } = require('../core/night-protocol');
 
 module.exports = {
@@ -22,11 +23,15 @@ module.exports = {
     const text = buildGoodbyeMessage(settings.userName);
 
     await minimizeAllWindows();
-    visualizerBridge.send('night-protocol:start', { text });
+    // Cinematische Shutdown-Projektion über alle Monitore: Kugel + Abschiedsansage
+    // auf dem Hauptmonitor, weitere Monitore stylisch schwarz. Fällt bei nur einem
+    // Monitor automatisch auf ein einzelnes Vollbild zurück.
+    screenManager.open('shutdown', 'orb', 'black', { text });
+    visualizerBridge.send('app:announce', { text });
 
     setTimeout(() => {
       exec('shutdown /s /t 15');
-    }, 6000);
+    }, 8000);
 
     return { result: `Gute-Nacht-Protokoll gestartet. ${text} Der PC fährt in Kürze herunter.` };
   },

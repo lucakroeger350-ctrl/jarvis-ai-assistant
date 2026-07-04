@@ -41,8 +41,10 @@ function pingHost(ip) {
   });
 }
 
+// Niedrigere Nebenläufigkeit als früher (war 32) - 254 gleichzeitig gestartete Ping-Prozesse
+// verursachten spürbare CPU-/Netzwerk-Lastspitzen (u.a. Ruckler in Online-Spielen).
 async function pingSweep(prefix) {
-  const CONCURRENCY = 32;
+  const CONCURRENCY = 8;
   const ips = Array.from({ length: 254 }, (_, i) => `${prefix}.${i + 1}`);
   for (let i = 0; i < ips.length; i += CONCURRENCY) {
     await Promise.all(ips.slice(i, i + CONCURRENCY).map(pingHost));
@@ -84,9 +86,13 @@ async function scanNetwork() {
 }
 
 // Passiver Hintergrund-Scan: prüft periodisch das WLAN und meldet neue Geräte proaktiv,
-// statt nur auf Anfrage per Skill zu scannen.
-function startWatchdog(onNewDevices, intervalMs = 3 * 60 * 1000) {
+// statt nur auf Anfrage per Skill zu scannen. Intervall von 3 auf 8 Minuten erhöht und
+// pausiert komplett während Gaming Mode aktiv ist, um Lastspitzen während des Spielens
+// zu vermeiden (siehe auch die reduzierte Ping-Nebenläufigkeit oben).
+function startWatchdog(onNewDevices, intervalMs = 8 * 60 * 1000) {
+  const gamingMode = require('./gaming-mode');
   const tick = async () => {
+    if (gamingMode.isOverlayActive()) return;
     try {
       const { newDevices, isFirstScan } = await scanNetwork();
       if (!isFirstScan && newDevices.length > 0) {

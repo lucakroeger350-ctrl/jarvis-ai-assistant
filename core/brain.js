@@ -1,8 +1,7 @@
-const Anthropic = require('@anthropic-ai/sdk');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const memory = require('./memory');
 const skills = require('./skills');
 const account = require('./account');
+const aiClient = require('./ai-client');
 const visualizerBridge = require('./visualizer-bridge');
 const { checkCreatorQuestion, checkIronManQuestion } = require('./easter-eggs');
 
@@ -17,14 +16,20 @@ function buildSystemPrompt(settings) {
     settings.personality,
     'Du kannst Werkzeuge (Tools) benutzen, um Aktionen auf dem PC des Nutzers auszuführen, den Bildschirm zu sehen, dir Dinge zu merken und dazuzulernen.',
     'Wenn du nicht weißt, wie man etwas Angefragtes tut (z.B. ein unbekanntes Programm öffnen), nutze web_search und web_fetch, um es herauszufinden, und speichere das Ergebnis danach mit remember_fact oder learn_skill, damit du es dir für künftige Anfragen merkst. Tu dies nur, wenn der Nutzer aktiv etwas angefragt hat - surfe niemals unaufgefordert im Hintergrund.',
-    'Für PC-steuernde Aktionen mit größerer Tragweite (z.B. shutdown_pc) frage IMMER erst explizit nach Bestätigung, bevor du sie ausführst - rufe das Tool beim ersten Mal nur informativ auf (confirmed=false) und erst nach ausdrücklicher Zustimmung des Nutzers in einer neuen Nachricht mit confirmed=true.',
+    'Für PC-steuernde Aktionen mit größerer Tragweite (z.B. shutdown_pc) MUSST du das Tool bei JEDER solchen Anfrage tatsächlich aufrufen (beim ersten Mal informativ mit confirmed=false) - antworte NIEMALS nur in Textform mit einer Rückfrage wie "Soll ich wirklich herunterfahren?", ohne das Tool aufzurufen. Sagt der Nutzer explizit "herunterfahren"/"ausschalten"/"PC aus" o.ä., rufe shutdown_pc SOFORT mit confirmed=false auf (das Tool selbst liefert dir dann den Bestätigungstext). Bestätigt der Nutzer danach in einer neuen Nachricht (z.B. "ja"), rufe es erneut mit confirmed=true auf.',
+    'WICHTIG: Verwechsle keine Tools mit unterschiedlicher Funktion (z.B. shutdown_pc niemals anstelle von toggle_gaming_mode oder umgekehrt) - such dir bei eindeutigen Anfragen aber IMMER das best passende vorhandene Tool und rufe es auch tatsächlich auf, anstatt nur zu behaupten, etwas getan zu haben. Gibt es wirklich kein passendes Werkzeug, sage das ehrlich. Der Nutzer drückt "Abbrechen" auf viele Arten aus - erkenne all diese als dieselbe Absicht: "abbrechen", "abschalten", "stopp", "halt", "lass es", "nicht mehr", "vergiss es", "mach das rückgängig", "nein doch nicht". Bei jeder dieser Formulierungen zu einer zuvor gestarteten Aktion rufe IMMER das passende Abbruch-/Deaktivierungs-Tool auf (z.B. cancel_shutdown, oder das jeweilige toggle_*-Tool mit enabled=false).',
+    'Wenn ein Werkzeug fehlschlägt oder du eine Aktion (z.B. ein bestimmtes Fenster minimieren/schließen) nicht ausführen kannst, sage das ehrlich und bitte den Nutzer aktiv um Hilfe: er soll dir entweder in Worten erklären, wie es geht, oder es einmal selbst tun und dir danach kurz beschreiben, was er gemacht hat (z.B. genauer Fenstertitel, genauer Programmname). Speichere seine Erklärung sofort mit learn_skill oder remember_fact, damit du es beim nächsten Mal selbst kannst. WICHTIG: Du kannst NICHT tatsächlich zusehen, wie der Nutzer etwas am PC tut (kein Bildschirm-Live-Tracking) - du bist nur auf seine Beschreibung in Worten angewiesen, das ehrlich so kommunizieren, niemals so tun, als würdest du seine Mausbewegungen beobachten.',
     'Antworte kurz, natürlich und sprechbar (dein Text wird laut vorgelesen) - keine Markdown-Formatierung, keine Aufzählungszeichen.',
+    settings.adhsMode
+      ? 'ADHS-MODUS AKTIV: Fasse dich extrem kurz und direkt - maximal 1-2 Sätze, komm sofort zum Punkt, keine Nebensätze oder Höflichkeitsfloskeln. Bei mehrschrittigen Aufgaben nenne nur den nächsten konkreten Schritt, nicht die ganze Liste auf einmal.'
+      : null,
     memoryContext,
     learnedContext,
   ].filter(Boolean).join('\n\n');
 }
 
-// Prüft VIP-Sperren/Coins vor jedem Skill-Aufruf, egal welcher KI-Provider ihn anfordert.
+// Prüft VIP-Sperren/Coins vor jedem Skill-Aufruf (lokales Skill-Coin-System, unabhängig
+// vom Cloud-Credit-System für reine Chat-Antworten - siehe core/account.js).
 async function runGatedSkill(name, input, context) {
   const gate = account.canUseSkill(name);
   if (!gate.allowed) return { error: gate.reason };
@@ -32,91 +37,6 @@ async function runGatedSkill(name, input, context) {
   if (gate.cost) account.spendCoins(gate.cost);
   return result;
 }
-
-async function chat(userMessage) {
-  // Hart codiertes Easter Egg: umgeht die KI-API komplett, kein API-Aufruf, keine Kosten.
-  const creatorEasterEgg = checkCreatorQuestion(userMessage);
-  if (creatorEasterEgg) return creatorEasterEgg;
-
-  // Iron-Man-Easter-Egg ist ein VIP-Bonus - für Gast/kostenlos fällt es durch zur normalen Antwort.
-  if (checkIronManQuestion(userMessage) && account.getAccountState().tier === account.TIERS.VIP) {
-    visualizerBridge.send('reactor:flash', {});
-    return { text: 'For you sir, always.' };
-  }
-
-  const messageCheck = account.canSendMessage();
-  if (!messageCheck.allowed) return { text: messageCheck.reason };
-  account.recordMessage();
-
-  const settings = memory.getSettings();
-  if (!settings.apiKey) {
-    const providerLabel = settings.provider === 'anthropic' ? 'Anthropic' : 'Google Gemini';
-    return { text: `Es ist noch kein ${providerLabel}-API-Schlüssel hinterlegt. Bitte trage ihn in den Einstellungen unter "KI" ein.` };
-  }
-
-  if (settings.provider === 'anthropic') {
-    return chatAnthropic(userMessage, settings);
-  }
-  return chatGemini(userMessage, settings);
-}
-
-// ---------- Anthropic Claude (kostenpflichtig) ----------
-
-async function chatAnthropic(userMessage, settings) {
-  const client = new Anthropic({ apiKey: settings.apiKey });
-  const context = { permissions: settings.permissions };
-
-  const messages = [{ role: 'user', content: userMessage }];
-  const tools = skills.getToolDefinitions();
-
-  let finalText = '';
-  const MAX_TURNS = 6;
-
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
-    let response;
-    try {
-      response = await client.messages.create({
-        model: settings.model,
-        max_tokens: 1024,
-        system: buildSystemPrompt(settings),
-        tools,
-        messages,
-      });
-    } catch (err) {
-      return { text: `Entschuldigung, es gab ein Problem mit der KI: ${err.message}` };
-    }
-
-    messages.push({ role: 'assistant', content: response.content });
-
-    const toolUses = response.content.filter((b) => b.type === 'tool_use');
-    const textBlocks = response.content.filter((b) => b.type === 'text');
-    finalText = textBlocks.map((b) => b.text).join('\n');
-
-    if (response.stop_reason !== 'tool_use' || toolUses.length === 0) break;
-
-    const toolResults = [];
-    for (const toolUse of toolUses) {
-      const result = await runGatedSkill(toolUse.name, toolUse.input, context);
-      let content;
-      if (result && result.image) {
-        content = [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: result.image } },
-          { type: 'text', text: 'Bildschirmfoto anbei.' },
-        ];
-      } else if (result && result.error) {
-        content = `Fehler: ${result.error}`;
-      } else {
-        content = typeof result.result === 'string' ? result.result : JSON.stringify(result.result);
-      }
-      toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content });
-    }
-    messages.push({ role: 'user', content: toolResults });
-  }
-
-  return { text: finalText || 'Verstanden.' };
-}
-
-// ---------- Google Gemini (kostenlos) ----------
 
 function uppercaseSchemaTypes(schema) {
   if (!schema || typeof schema !== 'object') return schema;
@@ -139,43 +59,59 @@ function toGeminiTools() {
   }));
 }
 
-async function chatGemini(userMessage, settings) {
-  const genAI = new GoogleGenerativeAI(settings.apiKey);
-  const context = { permissions: settings.permissions };
+async function chat(userMessage) {
+  // Hart codiertes Easter Egg: umgeht die KI-API komplett, kein API-Aufruf, keine Kosten.
+  const creatorEasterEgg = checkCreatorQuestion(userMessage);
+  if (creatorEasterEgg) return creatorEasterEgg;
 
-  let model;
-  try {
-    model = genAI.getGenerativeModel({
-      model: settings.model || 'gemini-2.5-flash',
-      systemInstruction: buildSystemPrompt(settings),
-      tools: [{ functionDeclarations: toGeminiTools() }],
-    });
-  } catch (err) {
-    return { text: `Entschuldigung, es gab ein Problem beim Initialisieren von Gemini: ${err.message}` };
+  // Gäste haben keine Cloud-Anmeldung und können den KI-Proxy daher grundsätzlich nicht
+  // nutzen (der Proxy prüft zwingend einen echten Supabase-Zugangstoken).
+  if (account.isGuestSession()) {
+    return { text: 'Als Gast kann ich derzeit nicht mit der KI sprechen, Sir - bitte melden Sie sich an, um zu chatten.' };
   }
 
-  const chatSession = model.startChat({ history: [] });
+  // Iron-Man-Easter-Egg ist ein VIP-Bonus - für Gast/kostenlos fällt es durch zur normalen Antwort.
+  if (checkIronManQuestion(userMessage) && account.getAccountState().tier === account.TIERS.VIP) {
+    visualizerBridge.send('reactor:flash', {});
+    return { text: 'For you sir, always.' };
+  }
 
+  const settings = memory.getSettings();
+  const context = { permissions: settings.permissions };
+  const tools = toGeminiTools();
+
+  let history = [];
+  let nextMessage = userMessage;
   let finalText = '';
   const MAX_TURNS = 6;
-  let nextInput = userMessage;
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     let result;
     try {
-      result = await chatSession.sendMessage(nextInput);
+      result = await aiClient.chatTurn({
+        model: settings.model,
+        systemInstruction: buildSystemPrompt(settings),
+        tools,
+        history,
+        message: nextMessage,
+      });
     } catch (err) {
-      return { text: `Entschuldigung, es gab ein Problem mit Gemini: ${err.message}` };
+      if (err.code === 'no_credits') {
+        visualizerBridge.send('credits:locked', {});
+        return { text: err.message, isSystemError: true };
+      }
+      return { text: `Entschuldigung, es gab ein Problem mit der KI: ${err.message}`, isSystemError: true };
     }
 
-    const response = result.response;
-    const functionCalls = response.functionCalls() || [];
-    finalText = response.text() || finalText;
+    // Verlauf für den nächsten Turn nachführen (Proxy selbst ist zustandslos).
+    history.push({ role: 'user', parts: Array.isArray(nextMessage) ? nextMessage : [{ text: nextMessage }] });
+    history.push(result.content || { role: 'model', parts: [{ text: result.text }] });
+    finalText = result.text || finalText;
 
-    if (functionCalls.length === 0) break;
+    if (!result.functionCalls.length) break;
 
     const parts = [];
-    for (const call of functionCalls) {
+    for (const call of result.functionCalls) {
       const skillResult = await runGatedSkill(call.name, call.args || {}, context);
       if (skillResult && skillResult.image) {
         parts.push({ functionResponse: { name: call.name, response: { result: 'Screenshot wurde bereitgestellt und ist als Bild angehängt.' } } });
@@ -183,12 +119,15 @@ async function chatGemini(userMessage, settings) {
       } else if (skillResult && skillResult.error) {
         parts.push({ functionResponse: { name: call.name, response: { error: skillResult.error } } });
       } else {
-        const value = typeof skillResult.result === 'string' ? skillResult.result : skillResult.result;
-        parts.push({ functionResponse: { name: call.name, response: { result: value } } });
+        parts.push({ functionResponse: { name: call.name, response: { result: skillResult.result } } });
       }
     }
-    nextInput = parts;
+    nextMessage = parts;
   }
+
+  // Genau 1 Credit pro abgeschlossener Nutzerfrage - unabhängig davon, wie viele interne
+  // Tool-Aufrufe/Proxy-Runden dafür nötig waren. VIP wird serverseitig ignoriert.
+  aiClient.consumeCredit();
 
   return { text: finalText || 'Verstanden.' };
 }
@@ -196,23 +135,7 @@ async function chatGemini(userMessage, settings) {
 // Einfache Ein-Text-Vervollständigung ohne Tools/Chat-Verlauf - genutzt von Skills,
 // die selbst schon eine KI-Auswertung brauchen (z.B. die Recherche-Drohne).
 async function summarizeText(prompt) {
-  const settings = memory.getSettings();
-  if (!settings.apiKey) throw new Error('Kein API-Schlüssel hinterlegt.');
-
-  if (settings.provider === 'anthropic') {
-    const client = new Anthropic({ apiKey: settings.apiKey });
-    const response = await client.messages.create({
-      model: settings.model,
-      max_tokens: 800,
-      messages: [{ role: 'user', content: prompt }],
-    });
-    return response.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
-  }
-
-  const genAI = new GoogleGenerativeAI(settings.apiKey);
-  const model = genAI.getGenerativeModel({ model: settings.model || 'gemini-2.5-flash' });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  return aiClient.complete(prompt);
 }
 
 module.exports = { chat, summarizeText };

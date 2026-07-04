@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { app } = require('electron');
 const profiles = require('./profiles');
+const cloudAuth = require('./cloud-auth');
+const cloudSync = require('./cloud-sync');
 
 const DATA_DIR = path.join(app.getPath('userData'), 'data');
-const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json'); // lokale userId->Profil-Zuordnung, KEINE Passwörter mehr
 const SESSION_FILE = path.join(DATA_DIR, 'session.json');
 
 function ensureDataDir() {
@@ -27,36 +28,38 @@ function writeJson(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-function hashPassword(password, salt) {
-  return crypto.scryptSync(password, salt, 64).toString('hex');
-}
-
-function getAccounts() {
-  return readJson(ACCOUNTS_FILE, { accounts: [] }).accounts;
-}
-
-function saveAccounts(accounts) {
-  writeJson(ACCOUNTS_FILE, { accounts });
-}
-
 function normalizeEmail(email) {
   return (email || '').trim().toLowerCase();
 }
 
-function toPublic(account) {
-  return { id: account.id, email: account.email, displayName: account.displayName, profileId: account.profileId };
+function getLocalAccounts() {
+  const accounts = readJson(ACCOUNTS_FILE, { accounts: [] }).accounts;
+  // Altlasten aus dem früheren rein-lokalen Passwort-System (Feld "passwordHash") sind mit
+  // dem Wechsel auf Cloud-Auth ungültig geworden und dürfen die "bestehendes Profil
+  // übernehmen"-Logik unten nicht blockieren - herausfiltern statt danach zu matchen.
+  return accounts.filter((a) => !a.passwordHash);
 }
 
-function register(email, password, displayName) {
-  const norm = normalizeEmail(email);
-  if (!norm || !password) throw new Error('E-Mail und Passwort werden benötigt.');
-  const accounts = getAccounts();
-  if (accounts.some((a) => a.email === norm)) throw new Error('Für diese E-Mail existiert bereits ein Konto.');
+function saveLocalAccounts(accounts) {
+  writeJson(ACCOUNTS_FILE, { accounts });
+}
 
-  const name = displayName && displayName.trim() ? displayName.trim() : norm;
+function toPublic(entry) {
+  return { id: entry.id, email: entry.email, displayName: entry.displayName, profileId: entry.profileId };
+}
 
-  // Erste Registrierung nach der Einführung von Konten: das bereits bestehende
-  // Profil (mit allen bisherigen Einstellungen) übernehmen statt ein leeres neues anzulegen.
+// Findet die lokale Profil-Zuordnung für einen Cloud-Nutzer, oder legt (mit
+// isFresh=true) ein neues lokales Profil an - z.B. nach einer Neuinstallation, bei der
+// die lokale Zuordnungsdatei nicht mehr existiert, obwohl das Cloud-Konto schon besteht.
+function resolveLocalProfile(userId, email, displayName) {
+  const accounts = getLocalAccounts();
+  const existing = accounts.find((a) => a.id === userId);
+  if (existing) return { profileId: existing.profileId, isFresh: false, accounts };
+
+  const name = displayName && displayName.trim() ? displayName.trim() : email;
+
+  // Erste Cloud-Migration eines bereits bestehenden lokalen (Alt-)Profils: das einzige
+  // vorhandene Profil übernehmen statt ein leeres neues anzulegen.
   const existingProfiles = profiles.listProfiles();
   let profileId;
   if (accounts.length === 0 && existingProfiles.length === 1) {
@@ -66,53 +69,84 @@ function register(email, password, displayName) {
     profileId = profiles.createProfile(name).id;
   }
 
-  const salt = crypto.randomBytes(16).toString('hex');
-  const account = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    email: norm,
-    displayName: name,
-    salt,
-    passwordHash: hashPassword(password, salt),
-    profileId,
-    createdAt: new Date().toISOString(),
-  };
-  accounts.push(account);
-  saveAccounts(accounts);
-
-  profiles.switchProfile(profileId);
-  writeJson(SESSION_FILE, { accountId: account.id });
-
-  return toPublic(account);
+  return { profileId, isFresh: true, accounts };
 }
 
-function login(email, password) {
+function saveSession(session) {
+  writeJson(SESSION_FILE, session);
+}
+
+async function register(email, password, displayName) {
   const norm = normalizeEmail(email);
-  const accounts = getAccounts();
-  const account = accounts.find((a) => a.email === norm);
-  if (!account) throw new Error('Kein Konto mit dieser E-Mail gefunden.');
+  if (!norm || !password) throw new Error('E-Mail und Passwort werden benötigt.');
 
-  const hash = hashPassword(password, account.salt);
-  if (hash !== account.passwordHash) throw new Error('Falsches Passwort.');
+  const result = await cloudAuth.register(norm, password);
+  if (result.pendingEmailConfirmation) {
+    throw new Error('Bestätigungs-Link wurde an Ihre E-Mail-Adresse gesendet. Bitte E-Mails prüfen und den Link anklicken, danach anmelden.');
+  }
 
-  profiles.switchProfile(account.profileId);
-  writeJson(SESSION_FILE, { accountId: account.id });
+  const { profileId, isFresh, accounts } = resolveLocalProfile(result.userId, result.email, displayName);
+  accounts.push({ id: result.userId, email: result.email, displayName: displayName || result.email, profileId });
+  saveLocalAccounts(accounts);
 
-  return toPublic(account);
+  profiles.switchProfile(profileId);
+  await cloudSync.syncOnLogin(result.accessToken, result.userId, result.email, displayName, isFresh).catch(() => {});
+
+  saveSession({ ...result, profileId, displayName: displayName || result.email });
+  return toPublic({ id: result.userId, email: result.email, displayName: displayName || result.email, profileId });
+}
+
+async function login(email, password) {
+  const norm = normalizeEmail(email);
+  const result = await cloudAuth.login(norm, password);
+
+  const { profileId, isFresh, accounts } = resolveLocalProfile(result.userId, result.email, null);
+  if (!accounts.some((a) => a.id === result.userId)) {
+    accounts.push({ id: result.userId, email: result.email, displayName: result.email, profileId });
+    saveLocalAccounts(accounts);
+  }
+
+  profiles.switchProfile(profileId);
+  await cloudSync.syncOnLogin(result.accessToken, result.userId, result.email, null, isFresh).catch(() => {});
+
+  const localEntry = getLocalAccounts().find((a) => a.id === result.userId);
+  saveSession({ ...result, profileId, displayName: localEntry ? localEntry.displayName : result.email });
+  return toPublic({ id: result.userId, email: result.email, displayName: localEntry ? localEntry.displayName : result.email, profileId });
 }
 
 function logout() {
   writeJson(SESSION_FILE, {});
 }
 
-function getSession() {
-  const session = readJson(SESSION_FILE, {});
-  if (!session.accountId) return null;
-  const accounts = getAccounts();
-  const account = accounts.find((a) => a.id === session.accountId);
-  if (!account) return null;
-
-  profiles.switchProfile(account.profileId);
-  return toPublic(account);
+function listAccounts() {
+  return getLocalAccounts().map(toPublic);
 }
 
-module.exports = { register, login, logout, getSession };
+// Öffentliche, IPC-sichere Session (keine Tokens) - für die Renderer-Seite.
+function getSession() {
+  const session = readJson(SESSION_FILE, {});
+  if (!session.userId) return null;
+  profiles.switchProfile(session.profileId);
+  return toPublic({ id: session.userId, email: session.email, displayName: session.displayName, profileId: session.profileId });
+}
+
+// Vollständige Session inkl. Cloud-Tokens - NUR für main.js/interne Sync-Aufrufe, nie
+// über IPC an den Renderer weitergeben.
+async function getFullSession() {
+  const session = readJson(SESSION_FILE, {});
+  if (!session.userId) return null;
+
+  if (Date.now() > session.expiresAt - 60000) {
+    try {
+      const refreshed = await cloudAuth.refresh(session.refreshToken);
+      const merged = { ...session, ...refreshed };
+      saveSession(merged);
+      return merged;
+    } catch {
+      return null; // Refresh fehlgeschlagen - Sitzung gilt als abgelaufen
+    }
+  }
+  return session;
+}
+
+module.exports = { register, login, logout, getSession, getFullSession, listAccounts };

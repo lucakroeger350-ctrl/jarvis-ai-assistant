@@ -53,10 +53,24 @@ html, body {
   inset: 0;
   z-index: 0;
   background:
-    linear-gradient(rgba(255, 69, 0, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 69, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(rgba(255, 69, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 69, 0, 0.04) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% -10%, rgba(255, 87, 34, 0.07), transparent 55%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
-  background-size: 42px 42px, 42px 42px, 100% 100%;
+  background-size: 44px 44px, 44px 44px, 100% 100%, 100% 100%;
+  animation: gridDrift 60s linear infinite;
+}
+@keyframes gridDrift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to { background-position: 44px 44px, 44px 44px, 0 0, 0 0; }
+}
+/* Cinematische Vignette: dunkelt die Ränder ab, hebt die Mitte hervor */
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 42%, transparent 52%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
 }
 
 .scanlines {
@@ -127,7 +141,16 @@ body.pre-auth .app-shell { margin-left: 0; }
   gap: 20px;
   padding: 12px 24px;
   border-bottom: 1px solid var(--panel-border);
-  background: linear-gradient(to bottom, rgba(255,69,0,0.06), transparent);
+  background: linear-gradient(to bottom, rgba(255,69,0,0.08), transparent);
+  position: relative;
+}
+/* Leuchtende Akzentlinie unter dem Header */
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -1px; height: 1px; width: 100%;
+  background: linear-gradient(90deg, var(--amber), transparent 40%, transparent 60%, var(--amber));
+  opacity: 0.5;
 }
 
 .brand {
@@ -138,9 +161,18 @@ body.pre-auth .app-shell { margin-left: 0; }
   color: var(--amber);
   text-shadow: 0 0 14px rgba(255,87,34,0.5);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   white-space: nowrap;
+}
+/* Glühender Marker-Block vor dem Markennamen */
+.brand::before {
+  content: '';
+  width: 10px; height: 18px;
+  background: var(--amber);
+  box-shadow: 0 0 14px var(--amber);
+  margin-right: 4px;
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 60% 100%, 0 100%);
 }
 .brand-sub {
   font-family: 'Inter', sans-serif;
@@ -238,30 +270,94 @@ body.pre-auth .app-shell { margin-left: 0; }
 }
 
 .panel {
-  background: var(--panel-bg);
+  /* Vier leuchtende HUD-Eckklammern (per Hintergrund-Gradient, kein Extra-Markup nötig) */
+  background:
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) left 0 top 0 / 20px 2px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) left 0 top 0 / 2px 20px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) right 0 top 0 / 20px 2px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) right 0 top 0 / 2px 20px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) left 0 bottom 0 / 20px 2px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) left 0 bottom 0 / 2px 20px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) right 0 bottom 0 / 20px 2px no-repeat,
+    linear-gradient(var(--panel-border-strong), var(--panel-border-strong)) right 0 bottom 0 / 2px 20px no-repeat,
+    var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 0;
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  box-shadow: inset 0 0 0 1px rgba(255,87,34,0.08), 0 6px 24px rgba(0,0,0,0.45);
+  box-shadow:
+    inset 0 0 22px rgba(255,87,34,0.05),
+    inset 0 0 0 1px rgba(255,87,34,0.06),
+    0 8px 30px rgba(0,0,0,0.5);
   position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.4s var(--ease), border-color 0.4s var(--ease);
+}
+.panel:hover {
+  border-color: var(--panel-border-strong);
+  box-shadow:
+    inset 0 0 26px rgba(255,87,34,0.08),
+    inset 0 0 0 1px rgba(255,87,34,0.1),
+    0 8px 34px rgba(0,0,0,0.55),
+    0 0 22px rgba(255,87,34,0.12);
 }
 .panel::before {
   content: '';
   position: absolute;
-  inset: 4px;
-  border: 1px solid rgba(255,87,34,0.12);
+  inset: 6px;
+  border: 1px solid rgba(255,87,34,0.1);
   pointer-events: none;
+}
+/* Langsam durchlaufende Scan-Linie für "lebendiges" HUD-Gefühl */
+.panel::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(255,87,34,0.06), transparent);
+  pointer-events: none;
+  animation: panelScan 7s linear infinite;
+  opacity: 0.6;
+}
+@keyframes panelScan {
+  0% { transform: translateY(-60px); opacity: 0; }
+  15% { opacity: 0.6; }
+  85% { opacity: 0.6; }
+  100% { transform: translateY(560px); opacity: 0; }
 }
 
 .panel-title {
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10.5px;
-  letter-spacing: 2.5px;
-  color: var(--text-dim);
-  margin-bottom: 12px;
+  letter-spacing: 3px;
+  color: var(--amber);
+  margin-bottom: 14px;
   font-weight: 600;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,87,34,0.14);
+  text-shadow: 0 0 10px rgba(255,87,34,0.35);
+}
+/* Blinkender Statuspunkt + kurzer Balken vor jedem Panel-Titel */
+.panel-title::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+  animation: pulse 1.6s infinite;
+  flex-shrink: 0;
+}
+/* Auslaufende Haarlinie hinter dem Titel (nur Hauptpanels) für den Sektions-Look */
+.panel > .panel-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,87,34,0.3), transparent);
+  margin-left: 4px;
 }
 
 /* Globe */
@@ -566,14 +662,22 @@ body.pre-auth .auth-overlay { display: flex; }
 .close-btn { background: transparent; border: none; color: var(--amber); font-size: 18px; cursor: pointer; transition: transform 0.2s var(--ease); }
 .close-btn:hover { transform: scale(1.15); }
 
-.settings-tabs { display: flex; border-bottom: 1px solid var(--panel-border); flex-wrap: wrap; }
-.tab-btn {
-  flex: 1; background: transparent; border: none; color: var(--text-dim); padding: 12px;
-  cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; letter-spacing: 0.5px;
-  border-bottom: 2px solid transparent; transition: all 0.3s var(--ease);
+/* Umgebaut in drei klar getrennte Gruppen (Allgemein/Sicherheit/Konto) statt einer einzigen
+   gestauchten Reihe mit 9 gleich breiten Tabs - war unübersichtlich, jetzt eine eigene
+   Zeile pro Themenbereich mit Beschriftung davor. */
+.settings-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; border-bottom: 1px solid var(--panel-border); padding: 10px 16px; }
+.tab-group-label {
+  flex-basis: 100%; font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-dim); opacity: 0.55; margin: 8px 0 2px;
 }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--amber); border-bottom-color: var(--amber); }
+.tab-group-label:first-child { margin-top: 0; }
+.tab-btn {
+  flex: none; background: transparent; border: 1px solid transparent; color: var(--text-dim); padding: 7px 14px;
+  cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  border-radius: 0; transition: all 0.25s var(--ease);
+}
+.tab-btn:hover { color: var(--text); border-color: rgba(255,87,34,0.2); }
+.tab-btn.active { color: var(--amber); border-color: var(--amber); background: rgba(255,87,34,0.08); }
 
 .tab-panel { display: none; padding: 22px; overflow-y: auto; gap: 16px; flex-direction: column; }
 .tab-panel.active { display: flex; }
@@ -690,7 +794,8 @@ body.pre-auth .auth-overlay { display: flex; }
 .tile-coins { align-items: center; text-align: center; }
 .tile-value-coins { color: var(--green); text-shadow: 0 0 12px rgba(77,255,154,0.4); }
 
-.panel-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Titel mit Button (Feed) rechtsbündig ausrichten - nur hier space-between */
+.tile-feed .panel-title { justify-content: space-between; }
 .feed-toggle-btn {
   background: transparent; border: 1px solid var(--panel-border); color: var(--text-dim);
   font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
@@ -708,3 +813,34 @@ body.pre-auth .auth-overlay { display: flex; }
 .user-dot.offline { background: #555; }
 .user-name { flex: 1; }
 .user-status { font-size: 10px; letter-spacing: 1px; color: var(--text-dim); }
+
+/* Credit-Sperre (KI-Antworteinheiten aufgebraucht) */
+.credit-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.92);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  opacity: 0; pointer-events: none; transition: opacity 0.5s var(--ease);
+}
+.credit-overlay.active { opacity: 1; pointer-events: all; }
+.credit-orb {
+  width: 130px; height: 130px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, rgba(255,120,120,0.95), var(--red) 46%, rgba(0,0,0,0) 73%);
+  box-shadow: 0 0 60px 18px rgba(255,59,48,0.4);
+  animation: flicker 1.1s ease-in-out infinite;
+}
+@keyframes flicker {
+  0%,100% { opacity: 0.7; transform: scale(0.96); }
+  45% { opacity: 1; transform: scale(1.04); }
+  60% { opacity: 0.5; }
+}
+.credit-title {
+  max-width: 560px; text-align: center; font-family: 'Share Tech Mono', monospace;
+  color: var(--red); font-size: 15px; letter-spacing: 1px; text-shadow: 0 0 12px rgba(255,59,48,0.5);
+}
+.credit-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.credit-actions button {
+  background: transparent; border: 1px solid var(--amber); color: var(--amber);
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1px;
+  padding: 12px 20px; cursor: pointer; transition: all 0.2s var(--ease);
+}
+.credit-actions button:hover { background: rgba(255,87,34,0.15); box-shadow: 0 0 14px rgba(255,87,34,0.3); }
