@@ -1,9 +1,23 @@
 const memory = require('./memory');
-const skills = require('./skills');
+let skills = require('./skills');
 const account = require('./account');
 const aiClient = require('./ai-client');
 const visualizerBridge = require('./visualizer-bridge');
 const { checkCreatorQuestion, checkIronManQuestion } = require('./easter-eggs');
+
+// Defensive Selbstheilung: falls "skills" durch irgendeinen Umstand (z.B. ein Require-
+// Problem an anderer Stelle) nicht das erwartete Modul-Objekt ist, wird es hier frisch
+// aus dem Cache neu geladen, statt den Chat für den Rest der Sitzung komplett zu blockieren.
+function ensureSkillsModule() {
+  if (typeof skills.getToolDefinitions !== 'function' || typeof skills.runSkill !== 'function') {
+    console.warn('[JARVIS] "skills"-Modul war unerwartet ungültig - lade es neu.');
+    try {
+      delete require.cache[require.resolve('./skills')];
+    } catch { /* ignore */ }
+    skills = require('./skills');
+  }
+  return skills;
+}
 
 function buildSystemPrompt(settings) {
   const memoryContext = memory.getMemoryContextString();
@@ -23,6 +37,9 @@ function buildSystemPrompt(settings) {
     settings.adhsMode
       ? 'ADHS-MODUS AKTIV: Fasse dich extrem kurz und direkt - maximal 1-2 Sätze, komm sofort zum Punkt, keine Nebensätze oder Höflichkeitsfloskeln. Bei mehrschrittigen Aufgaben nenne nur den nächsten konkreten Schritt, nicht die ganze Liste auf einmal.'
       : null,
+    settings.confirmCriticalActions === false
+      ? 'Der Nutzer hat in den Einstellungen explizite Bestätigungen vor kritischen Aktionen (PC herunterfahren, Dateien löschen usw.) DEAKTIVIERT - führe solche Tools bei eindeutigen Anfragen direkt aus (confirmed=true im ersten Aufruf), frage nicht extra nach.'
+      : 'Hole vor kritischen, schwer rückgängig zu machenden Aktionen (PC herunterfahren, Dateien/Datenmüll löschen usw.) IMMER eine explizite Bestätigung des Nutzers ein, bevor du sie endgültig ausführst (confirmed=true).',
     memoryContext,
     learnedContext,
   ].filter(Boolean).join('\n\n');
@@ -33,7 +50,7 @@ function buildSystemPrompt(settings) {
 async function runGatedSkill(name, input, context) {
   const gate = account.canUseSkill(name);
   if (!gate.allowed) return { error: gate.reason };
-  const result = await skills.runSkill(name, input, context);
+  const result = await ensureSkillsModule().runSkill(name, input, context);
   if (gate.cost) account.spendCoins(gate.cost);
   return result;
 }
@@ -52,7 +69,7 @@ function uppercaseSchemaTypes(schema) {
 }
 
 function toGeminiTools() {
-  return skills.getToolDefinitions().map((t) => ({
+  return ensureSkillsModule().getToolDefinitions().map((t) => ({
     name: t.name,
     description: t.description,
     parameters: uppercaseSchemaTypes(t.input_schema),
@@ -125,10 +142,9 @@ async function chat(userMessage) {
     nextMessage = parts;
   }
 
-  // Genau 1 Credit pro abgeschlossener Nutzerfrage - unabhängig davon, wie viele interne
-  // Tool-Aufrufe/Proxy-Runden dafür nötig waren. VIP wird serverseitig ignoriert.
-  aiClient.consumeCredit();
-
+  // Kein separater Abrechnungsschritt mehr nötig - jede einzelne Proxy-Runde in der
+  // Schleife oben hat sich bereits selbst mit ihren tatsächlichen Tokens abgerechnet
+  // (siehe website/app/api/gemini-proxy/route.ts). VIP bleibt dort unbegrenzt.
   return { text: finalText || 'Verstanden.' };
 }
 

@@ -14,6 +14,9 @@ async function authHeaders() {
 // Ein Gesprächs-Turn mit Tool-Unterstützung - wird vom Tool-Loop in core/brain.js wiederholt
 // aufgerufen (einmal pro Runde: Modell antwortet, ruft ggf. Tools auf, wir schicken das
 // Ergebnis zurück). Wirft bei fehlenden Credits einen Error mit .code = 'no_credits'.
+// Der Proxy zieht pro Aufruf sofort die tatsächlich verbrauchten, gewichteten Tokens ab
+// (siehe website/app/api/gemini-proxy/route.ts) - kein separater Abrechnungsschritt hier
+// mehr nötig, "usage" wird nur zu Diagnosezwecken durchgereicht.
 async function chatTurn({ model, systemInstruction, tools, history, message }) {
   const headers = await authHeaders();
   const res = await fetch(`${WEBSITE_URL}/api/gemini-proxy`, {
@@ -30,7 +33,7 @@ async function chatTurn({ model, systemInstruction, tools, history, message }) {
   }
   if (!res.ok) throw new Error(data.error || `KI-Anfrage fehlgeschlagen (${res.status}).`);
 
-  return { text: data.text || '', functionCalls: data.functionCalls || [], content: data.content || null };
+  return { text: data.text || '', functionCalls: data.functionCalls || [], content: data.content || null, usage: data.usage || null };
 }
 
 // Einfache Ein-Text-Vervollständigung ohne Tools/Verlauf (z.B. für Zusammenfassungen).
@@ -39,16 +42,4 @@ async function complete(prompt, model) {
   return text;
 }
 
-// Zieht genau 1 Credit ab - wird von core/brain.js EINMAL pro abgeschlossener Nutzerfrage
-// aufgerufen (nicht pro internem Tool-Aufruf). VIP-Nutzer werden serverseitig ignoriert.
-async function consumeCredit() {
-  try {
-    const headers = await authHeaders();
-    await fetch(`${WEBSITE_URL}/api/consume-credit`, { method: 'POST', headers });
-  } catch {
-    // stille Fehlbehandlung - das eigentliche Gating passiert ohnehin serverseitig
-    // beim nächsten gemini-proxy-Aufruf, ein einzelner fehlgeschlagener Abzug ist unkritisch
-  }
-}
-
-module.exports = { chatTurn, complete, consumeCredit, WEBSITE_URL };
+module.exports = { chatTurn, complete, WEBSITE_URL };
